@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { createScene } from './scene.js';
 import { createLighting, applyLightingPreset } from './lighting.js';
+import { countMaterialGroups } from '../export/merge.js';
 
 const TURNTABLE_SPEED = 0.008;
 
@@ -119,7 +120,11 @@ export class Viewport {
     applyLightingPreset(this.scene, this.lights, presetName);
   }
 
-  /** @returns {{triangles: number, meshes: number}} live mesh diagnostics. */
+  /**
+   * @returns {{triangles: number, meshes: number, materialGroups: number}}
+   * Live mesh diagnostics. `materialGroups` is how many draw calls the model
+   * would cost after merging by material.
+   */
   getStats() {
     let triangles = 0;
     let meshes = 0;
@@ -135,7 +140,11 @@ export class Viewport {
       }
     });
 
-    return { triangles: Math.round(triangles), meshes };
+    return {
+      triangles: Math.round(triangles),
+      meshes,
+      materialGroups: countMaterialGroups(this.modelGroup),
+    };
   }
 
   handleResize() {
