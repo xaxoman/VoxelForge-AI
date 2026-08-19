@@ -21,6 +21,7 @@ import { initApiKeyField } from './ui/api-key.js';
 import { initImageInput } from './ui/image-input.js';
 import { initExportMenu } from './ui/export-menu.js';
 import { createTimer } from './ui/timer.js';
+import { initInspector } from './ui/inspector.js';
 
 const viewport = new Viewport(dom.canvasContainer);
 const timer = createTimer(dom.timerDisplay);
@@ -258,6 +259,9 @@ initExportMenu({
   options: dom.exportOptions(),
   onSelect: handleExport,
 });
+
+// Editing a part can change what the draw-call figure should read.
+initInspector({ selection: viewport.selection, onChange: refreshStats });
 
 viewport.start();
 
