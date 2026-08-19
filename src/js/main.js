@@ -1,0 +1,157 @@
+/**
+ * Application entry point.
+ *
+ * Owns no logic of its own beyond the generate/export flows — it wires the DOM
+ * (dom.js), the 3D stage (viewer/), the Gemini pipeline (ai/) and the exporters
+ * (export/) together.
+ */
+
+import { GENERATE_LABELS, SAMPLE_PROMPTS } from './config.js';
+import { dom } from './dom.js';
+import { Viewport } from './viewer/viewport.js';
+import { generateModelCode } from './ai/gemini-client.js';
+import { buildModelFromCode } from './ai/model-compiler.js';
+import { exportModel } from './export/model-exporter.js';
+import { initApiKeyField } from './ui/api-key.js';
+import { initImageInput } from './ui/image-input.js';
+import { initExportMenu } from './ui/export-menu.js';
+import { createTimer } from './ui/timer.js';
+
+const viewport = new Viewport(dom.canvasContainer);
+const timer = createTimer(dom.timerDisplay);
+const apiKey = initApiKeyField({
+  input: dom.apiKeyInput,
+  dot: dom.keyDot,
+  statusText: dom.keyStatusText,
+});
+const imageInput = initImageInput({
+  dropzone: dom.imageDropzone,
+  fileInput: dom.fileInput,
+  previewWrapper: dom.previewWrapper,
+  preview: dom.imagePreview,
+  removeBtn: dom.removeImageBtn,
+  onChange: (hasImage) => {
+    dom.generateBtn.textContent = hasImage ? GENERATE_LABELS.image : GENERATE_LABELS.text;
+  },
+});
+
+/** Shows the model that actually answered (may differ after a failover). */
+function setModelBadge(model) {
+  dom.activeModelBadge.textContent = model.replace('gemini-', '').toUpperCase();
+}
+
+/** Refreshes the triangle/object readout from the live scene. */
+function refreshStats() {
+  const { triangles, meshes } = viewport.getStats();
+  dom.polycountLabel.textContent = `Triangles: ${triangles.toLocaleString()}`;
+  dom.objectCountLabel.textContent = `Objects: ${meshes}`;
+}
+
+/** Toggles the loading spinner and the generate button's disabled state. */
+function setBusy(isBusy, status = '') {
+  dom.loadingIndicator.style.display = isBusy ? 'flex' : 'none';
+  dom.generateBtn.disabled = isBusy;
+  if (status) dom.loadingText.textContent = status;
+}
+
+/** Prompt -> Gemini -> Three.js code -> mounted model. */
+async function handleGenerate() {
+  const key = apiKey.getKey();
+  const prompt = dom.promptInput.value.trim();
+  const image = imageInput.getImage();
+
+  if (!key) {
+    alert('Please enter your Google Gemini API Key first.\n(Get one at: https://aistudio.google.com/app/apikey)');
+    dom.apiKeyInput.focus();
+    return;
+  }
+
+  if (!prompt && !image) {
+    alert('Please enter a prompt or attach an image.');
+    return;
+  }
+
+  setBusy(true, 'Contacting Gemini API...');
+  timer.start();
+
+  try {
+    const { code, model } = await generateModelCode({
+      apiKey: key,
+      model: dom.modelSelect.value,
+      prompt,
+      image,
+      detailLevel: dom.detailLevelSelect.value,
+      materialStyle: dom.materialStyleSelect.value,
+      onStatus: (status) => { dom.loadingText.textContent = status; },
+    });
+
+    setModelBadge(model);
+    dom.loadingText.textContent = 'Assembling 3D scene & calculating normals...';
+
+    viewport.setModel(await buildModelFromCode(code));
+    refreshStats();
+    timer.stop();
+  } catch (err) {
+    console.error(err);
+    alert(`Generation Error: ${err.message}`);
+    timer.fail();
+  } finally {
+    setBusy(false);
+  }
+}
+
+/** Exports the current model, guarding against an empty scene. */
+async function handleExport(format) {
+  if (!viewport.hasModel()) {
+    alert('Please generate a 3D model first!');
+    return;
+  }
+
+  const fallbackName = imageInput.getImage() ? 'model_asset' : 'model';
+
+  try {
+    await exportModel(viewport.getModel(), format, dom.promptInput.value.trim() || fallbackName);
+  } catch (err) {
+    console.error(err);
+    alert(`Export failed: ${err.message}`);
+  }
+}
+
+// --- Event wiring ---
+
+dom.generateBtn.addEventListener('click', handleGenerate);
+
+dom.modelSelect.addEventListener('change', (event) => setModelBadge(event.target.value));
+
+dom.randomBtn.addEventListener('click', () => {
+  const index = Math.floor(Math.random() * SAMPLE_PROMPTS.length);
+  dom.promptInput.value = SAMPLE_PROMPTS[index];
+});
+
+dom.promptChips().forEach((chip) => {
+  chip.addEventListener('click', () => {
+    dom.promptInput.value = chip.dataset.prompt;
+    handleGenerate();
+  });
+});
+
+dom.lightingPresetSelect.addEventListener('change', (event) => {
+  viewport.setLightingPreset(event.target.value);
+});
+
+dom.turntableToggle.addEventListener('click', () => {
+  dom.turntableToggle.classList.toggle('active-toggle', viewport.toggleAutoRotate());
+});
+
+dom.wireframeToggle.addEventListener('click', () => {
+  dom.wireframeToggle.classList.toggle('active-toggle', viewport.toggleWireframe());
+});
+
+initExportMenu({
+  trigger: dom.exportDropdownTrigger,
+  menu: dom.exportMenu,
+  options: dom.exportOptions(),
+  onSelect: handleExport,
+});
+
+viewport.start();

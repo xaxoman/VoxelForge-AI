@@ -45,7 +45,7 @@ Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to pr
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-* **Frontend**: Vanilla JavaScript (ES Modules), HTML5, CSS3 Glassmorphism UI (zero build tools required).
+* **Frontend**: Vanilla JavaScript (native ES Modules), HTML5, CSS3 Glassmorphism UI (zero build tools, zero runtime dependencies).
 * **3D Engine**: Three.js (r160) with `OrbitControls`, `PCFSoftShadowMap`, and ACES Filmic Tone Mapping.
 * **AI Engine**: Google Gemini API (`gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-2.5-flash`, `gemini-2.0-flash`).
 * **Export Pipeline**: `GLTFExporter` (Binary & JSON), `OBJExporter`, `STLExporter`.
@@ -137,10 +137,81 @@ Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to pr
 
 ---
 
+## 📁 Project Structure
+
+The app is plain ES modules and plain CSS — no bundler, no transpiler, no
+`node_modules` required at runtime. Three.js is pulled from a CDN via an
+[import map](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type/importmap)
+declared in `index.html`.
+
+```text
+.
+├── index.html                    # Markup only — structure, import map, entry points
+├── package.json                  # Static-server scripts (no runtime dependencies)
+└── src/
+    ├── styles/
+    │   ├── main.css              # Entry point: @imports the four sheets below
+    │   ├── variables.css         # Design tokens (colors, borders, accents)
+    │   ├── base.css              # Reset, document shell, typography, keyframes
+    │   ├── layout.css            # Overlay panels, grids, button rows
+    │   └── components.css        # Buttons, inputs, dropzone, export menu, chips
+    └── js/
+        ├── main.js               # Entry point: wires every module together
+        ├── config.js             # Tunable constants (models, presets, limits)
+        ├── dom.js                # Single lookup point for every DOM element
+        ├── viewer/
+        │   ├── scene.js          # Scene, camera, renderer, controls, grid, floor
+        │   ├── lighting.js       # Three-point rig + lighting presets
+        │   └── viewport.js       # Render loop, model swapping, framing, stats
+        ├── ai/
+        │   ├── prompt-builder.js # Detail/material instruction blocks → system prompt
+        │   ├── gemini-client.js  # generateContent + auto-failover circuit
+        │   └── model-compiler.js # Evaluates returned code into a Three.js object
+        ├── export/
+        │   └── model-exporter.js # .GLB / .GLTF / .OBJ / .STL exporters
+        └── ui/
+            ├── api-key.js        # Key persistence + status indicator
+            ├── image-input.js    # Dropzone, paste, preview, client-side rescaling
+            ├── export-menu.js    # Export dropdown behavior
+            └── timer.js          # Generation stopwatch
+```
+
+### Where to change things
+
+| I want to…                              | Edit                                |
+| :-------------------------------------- | :---------------------------------- |
+| Add or reorder fallback models           | `src/js/config.js`                  |
+| Change how Gemini is instructed          | `src/js/ai/prompt-builder.js`       |
+| Add a new export format                  | `src/js/export/model-exporter.js`   |
+| Tweak lights or add a lighting preset    | `src/js/config.js` + `src/js/viewer/lighting.js` |
+| Adjust colors and spacing                | `src/styles/variables.css`          |
+| Add a new UI control                     | `index.html` + `src/js/dom.js` + `src/js/main.js` |
+
+---
+
 ## 🛠️ Quick Start Guide
 
-1. Clone or download `index.html`.
-2. Open `index.html` directly in any modern browser (Chrome, Edge, Firefox, Safari).
-3. Paste your [Google AI Studio API Key](https://aistudio.google.com/app/apikey).
-4. Paste an image reference (`Ctrl+V`) or type a prompt.
-5. Click **✨ Generate 3D Model** and export your asset!
+The app has **no build step and no dependencies to install** — but because the
+source is split into native ES modules, it must be served over `http://` rather
+than opened from the filesystem. Browsers block `file://` module imports for
+security reasons (CORS), so double-clicking `index.html` will show a blank page.
+
+Any static server works. Pick one:
+
+```bash
+# Option A — npm script (uses npx, nothing to install permanently)
+npm start
+
+# Option B — Python, already on most machines
+python3 -m http.server 5173
+
+# Option C — any other static server
+npx --yes serve@14 . -l 5173
+```
+
+Then:
+
+1. Open <http://localhost:5173> in a modern browser (Chrome, Edge, Firefox, Safari).
+2. Paste your [Google AI Studio API Key](https://aistudio.google.com/app/apikey) — it is stored in `localStorage`, never sent anywhere but Google's API.
+3. Paste an image reference (`Ctrl+V`) or type a prompt.
+4. Click **✨ Generate 3D Model** and export your asset!

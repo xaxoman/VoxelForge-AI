@@ -1,0 +1,14 @@
+/* Design tokens shared by every stylesheet. */
+
+:root {
+  --bg-dark: #090d16;
+  --card-bg: rgba(18, 24, 38, 0.90);
+  --accent: #4285f4;
+  --accent-gemini: linear-gradient(135deg, #4285f4, #9b72cb, #d96570);
+  --text: #f8fafc;
+  --text-muted: #94a3b8;
+  --border: rgba(255, 255, 255, 0.12);
+  --border-focus: #4285f4;
+  --error: #ef4444;
+  --success: #10b981;
+}
