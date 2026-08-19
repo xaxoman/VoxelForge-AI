@@ -75,7 +75,7 @@ Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to pr
 
 ### 4. Game-Engine Ready Hierarchy
 * Every generated component is assigned a semantic identifier (`Chassis`, `Wheel_Front_Left`, `Cockpit_Glass`, `Spoiler`, `Headlight_Left`).
-* Preserves named node trees upon `.glb` import into Godot and Unity for immediate rigging and animation.
+* Preserves named node trees upon `.glb` import into Godot and Unity for immediate rigging and animation (unless draw call merging is enabled — see [Draw call optimization](#-draw-call-optimization)).
 
 ### 5. Multi-Format 3D Exporter Dropdown
 * 📦 **`.GLB` (Binary)**: Self-contained binary bundle with meshes, hierarchy, and embedded materials (Best for Godot & Unity).
@@ -173,7 +173,7 @@ it then applies to every model you import.
 
 ### Phase 2: Game Engine Production Optimization
 - [x] **Automatic Collision Mesh Generation** — ships as the **Collision mesh** control. Generates invisible proxy hulls tagged with Godot's `-colonly` / `-convcolonly` suffixes, plus a Unity `AssetPostprocessor` that reads the same suffixes. See [Automatic collision meshes](#-automatic-collision-meshes).
-- [ ] **Draw Call Optimization (`BufferGeometryUtils.mergeGeometries`)**: Provide a toggle to merge meshes sharing identical materials, dropping draw calls from 80+ down to 3–5 for mobile/VR performance.
+- [x] **Draw Call Optimization (`BufferGeometryUtils.mergeGeometries`)** — ships as the **Draw call optimization** control. See [Draw call optimization](#-draw-call-optimization).
 - [ ] **LOD (Level of Detail) Generator**: Export multi-tier LODs (`LOD0` full detail, `LOD1` medium proxy, `LOD2` low poly) in a single container.
 
 ### Phase 3: In-App Interactive 3D Editor
@@ -227,7 +227,8 @@ declared in `index.html`.
         │   └── model-compiler.js # Evaluates returned code into a Three.js object
         ├── export/
         │   ├── model-exporter.js # .GLB / .GLTF / .OBJ / .STL exporters
-        │   └── collision.js      # Collision proxy hulls + Godot name suffixes
+        │   ├── collision.js      # Collision proxy hulls + Godot name suffixes
+        │   └── merge.js          # Draw call optimization via geometry merging
         └── ui/
             ├── api-key.js        # Key persistence + status indicator
             ├── image-input.js    # Dropzone, paste, preview, client-side rescaling
@@ -263,9 +264,69 @@ app means editing that one file.
 | Change how Gemini is instructed          | `src/js/ai/prompt-builder.js`       |
 | Add a new export format                  | `src/js/export/model-exporter.js`   |
 | Change how collision hulls are built     | `src/js/export/collision.js`        |
+| Change how meshes are grouped for merging | `src/js/export/merge.js`           |
 | Tweak lights or add a lighting preset    | `src/js/config.js` + `src/js/viewer/lighting.js` |
 | Adjust colors and spacing                | `src/styles/variables.css`          |
 | Add a new UI control                     | `index.html` + `src/js/dom.js` + `src/js/main.js` |
+
+---
+
+## ⚡ Draw Call Optimization
+
+A high-detail model can arrive as 60–80 separate primitives, and every one of
+them is a draw call in your engine. Setting **Draw call optimization** to
+*Merge by material* collapses parts that share a material into a single mesh
+via `BufferGeometryUtils.mergeGeometries()`.
+
+On a typical vehicle that is **58 meshes down to 4 draw calls** — the paint,
+the rubber, the chrome and the glass — with the triangle count completely
+unchanged.
+
+The bottom bar shows the projected figure live, so you can see the effect
+before exporting:
+
+```text
+420 triangles   7 objects   2 draw calls
+```
+
+### The trade-off
+
+Merging **discards the per-part hierarchy**. `Wheel_Front_Left`,
+`Cockpit_Glass` and friends collapse into `Wheel_Merged` and
+`Cockpit_Glass_Merged`, so you can no longer address, rig or animate an
+individual wheel in-engine.
+
+That is the opposite of what the named-node-tree feature exists for, so it is
+**off by default**. Turn it on for static scenery, props and background assets;
+leave it off for anything you intend to rig.
+
+### How parts are grouped
+
+Generated code never reuses material *instances* — every part gets its own
+`new THREE.MeshStandardMaterial(...)` — so grouping by object identity would
+merge nothing. Parts are grouped by a signature of the properties that actually
+affect rendering (type, colour, metalness, roughness, emissive, transparency,
+opacity, side, shading, vertex colours, texture), rounded so float noise cannot
+split an otherwise identical pair.
+
+Merged meshes are named after the parts that went into them: a shared prefix
+when the parts are clearly a family (all four wheels become `Wheel_Merged`),
+otherwise the name of the part contributing the most geometry.
+
+### Notes
+
+* Applies to **`.glb` and `.gltf` only**, alongside collision. `.obj` and
+  `.stl` keep the full part list a modeller expects.
+* **Collision proxies are always derived from the original, unmerged parts.**
+  Per-part collision therefore still produces one hull per wheel, rather than a
+  single hull spanning all four corners of the vehicle.
+* Transparent materials never merge into opaque ones — transparency is part of
+  the signature — so render order is preserved.
+* Meshes with an array of materials are passed through untouched.
+* If a group cannot be reconciled (mismatched vertex attributes), those parts
+  are kept separate rather than dropped, and a warning is logged.
+* The live viewport is never modified; merging happens on a throwaway copy
+  built at export time.
 
 ---
 

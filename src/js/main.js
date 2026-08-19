@@ -40,11 +40,21 @@ function setModelBadge(model) {
   dom.activeModelBadge.textContent = model.replace('gemini-', '');
 }
 
-/** Refreshes the triangle/object readout from the live scene. */
+/** True when the user has asked for merged output. */
+const isMergeEnabled = () => dom.mergeModeSelect.value === 'material';
+
+/**
+ * Refreshes the readouts from the live scene. The draw-call figure previews
+ * what merging would achieve, so the trade-off is visible before exporting.
+ */
 function refreshStats() {
-  const { triangles, meshes } = viewport.getStats();
+  const { triangles, meshes, materialGroups } = viewport.getStats();
   dom.polycountLabel.textContent = triangles.toLocaleString();
   dom.objectCountLabel.textContent = meshes;
+  dom.drawCallLabel.textContent = isMergeEnabled() ? materialGroups : meshes;
+  dom.drawCallStat.title = isMergeEnabled()
+    ? `Merging by material: ${meshes} meshes collapse into ${materialGroups} draw calls`
+    : `${meshes} draw calls — enable "Merge by material" to reduce to ${materialGroups}`;
 }
 
 /** Toggles the loading spinner and the generate button's disabled state. */
@@ -126,7 +136,7 @@ async function handleExport(format) {
       viewport.getModel(),
       format,
       dom.promptInput.value.trim() || fallbackName,
-      dom.collisionModeSelect.value,
+      { collisionMode: dom.collisionModeSelect.value, merge: isMergeEnabled() },
     );
   } catch (err) {
     console.error(err);
@@ -151,6 +161,9 @@ dom.promptChips().forEach((chip) => {
     handleGenerate();
   });
 });
+
+// The draw-call readout depends on the merge setting, not just the model.
+dom.mergeModeSelect.addEventListener('change', refreshStats);
 
 dom.lightingPresetSelect.addEventListener('change', (event) => {
   viewport.setLightingPreset(event.target.value);

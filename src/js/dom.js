@@ -22,6 +22,7 @@ export const dom = {
   detailLevelSelect: byId('detail-level'),
   materialStyleSelect: byId('material-style'),
   collisionModeSelect: byId('collision-mode'),
+  mergeModeSelect: byId('merge-mode'),
   promptInput: byId('prompt-input'),
 
   // Reference image
@@ -50,6 +51,8 @@ export const dom = {
   // Readouts
   polycountLabel: byId('mesh-polycount'),
   objectCountLabel: byId('mesh-objects'),
+  drawCallLabel: byId('mesh-drawcalls'),
+  drawCallStat: byId('drawcall-stat'),
   timerDisplay: byId('timer-display'),
 
   // Collections

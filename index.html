@@ -193,6 +193,17 @@
           </select>
         </div>
 
+        <div>
+          <label class="field-label" for="merge-mode">
+            Draw call optimization
+            <span class="label-hint">.glb / .gltf</span>
+          </label>
+          <select id="merge-mode" title="Merges meshes that share a material into one, cutting draw calls at the cost of the per-part hierarchy">
+            <option value="off" selected>Off — keep named parts</option>
+            <option value="material">Merge by material</option>
+          </select>
+        </div>
+
         <!-- Prompt -->
         <div>
           <label class="field-label" for="prompt-input">Prompt</label>
@@ -233,6 +244,10 @@
         <span class="stat">
           <svg class="icon icon-sm" aria-hidden="true"><use href="#i-layers"/></svg>
           <span class="mono stat-value" id="mesh-objects">0</span> objects
+        </span>
+        <span class="stat" id="drawcall-stat" title="Draw calls after merging by material">
+          <svg class="icon icon-sm" aria-hidden="true"><use href="#i-box"/></svg>
+          <span class="mono stat-value" id="mesh-drawcalls">0</span> draw calls
         </span>
         <span class="stat">
           <svg class="icon icon-sm" aria-hidden="true"><use href="#i-clock"/></svg>

@@ -56,10 +56,12 @@
   margin-bottom: var(--space-1);
 }
 
+/* Field rhythm is tight on purpose: the panel carries a lot of controls and
+   should stay readable without scrolling on a 900px-tall viewport. */
 .input-group {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 /* Hairline rule separating the fidelity controls from the fields above. */
