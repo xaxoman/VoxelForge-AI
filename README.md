@@ -84,6 +84,7 @@ Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to pr
 * 🖨️ **`.STL` (Stereolithography)**: Binary mesh export ready for 3D printing slicers (Cura, PrusaSlicer).
 
 ### 6. Resilience & Developer Experience
+* **Self-Repairing Generation**: Generated code is checked against the real Three.js namespace before it runs. If the model invents a class that doesn't exist (`THREE.PrismGeometry` and friends), the exact diagnostic is sent back for a corrective pass — up to `MAX_REPAIR_ATTEMPTS` times — so a hallucinated API costs a few seconds instead of a failed generation. The system prompt also carries an explicit allowlist of the 20 geometry constructors that actually exist.
 * **Auto-Failover Circuit**: Automatically detects `503 High Demand` or `429 Rate Limit` errors and cascades down to available models (`3.6-flash` $\rightarrow$ `3.5-flash` $\rightarrow$ `2.5-flash` $\rightarrow$ `2.0-flash`).
 * **Live Generation Stopwatch**: Real-time timer tracking elapsed seconds during generation and displaying total build time.
 * **Live Mesh Diagnostics**: Dynamic triangle polycount and object-count counters.

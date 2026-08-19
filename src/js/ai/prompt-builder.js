@@ -34,6 +34,22 @@ export const MATERIAL_INSTRUCTIONS = {
 };
 
 /**
+ * Every geometry class the core THREE namespace exports in r160.
+ *
+ * Spelled out in the prompt because models otherwise invent plausible-sounding
+ * classes — `PrismGeometry`, `RoundedBoxGeometry`, `TextGeometry` — that only
+ * fail once the generated code runs.
+ */
+export const ALLOWED_GEOMETRIES = [
+  'BoxGeometry', 'CapsuleGeometry', 'CircleGeometry', 'ConeGeometry',
+  'CylinderGeometry', 'DodecahedronGeometry', 'ExtrudeGeometry',
+  'IcosahedronGeometry', 'LatheGeometry', 'OctahedronGeometry',
+  'PlaneGeometry', 'PolyhedronGeometry', 'RingGeometry', 'ShapeGeometry',
+  'SphereGeometry', 'TetrahedronGeometry', 'TorusGeometry',
+  'TorusKnotGeometry', 'TubeGeometry', 'BufferGeometry',
+];
+
+/**
  * @param {keyof DETAIL_INSTRUCTIONS} detailLevel
  * @param {keyof MATERIAL_INSTRUCTIONS} materialStyle
  * @returns {string} The full system instruction.
@@ -65,7 +81,42 @@ MANDATORY RULES:
 4. Center the model at (0, 0, 0) with height scaled between 1.5 and 4 units.
 5. If an image is provided, accurately copy its silhouette, proportions, colors, sub-components, and materials!
 6. Return PURE JavaScript code only inside \`\`\`javascript ... \`\`\` or raw code without markdown explanation.
+
+GEOMETRY ALLOWLIST — these are the ONLY geometry constructors that exist:
+${ALLOWED_GEOMETRIES.join(', ')}
+
+Do NOT invent geometry classes. There is no THREE.PrismGeometry,
+THREE.RoundedBoxGeometry, THREE.TextGeometry or THREE.WedgeGeometry.
+Build such shapes by combining the allowlisted primitives instead — a prism is
+a CylinderGeometry with 3 radial segments, a rounded box is a scaled
+CapsuleGeometry or a box with bevel meshes, and any custom profile can be
+produced with ExtrudeGeometry or LatheGeometry over a THREE.Shape.
 `;
+}
+
+/**
+ * Builds the follow-up turn asking the model to fix code that failed.
+ *
+ * The failing source and the exact error go back verbatim: a model correcting
+ * a concrete diagnostic does far better than one asked to "try again".
+ *
+ * @param {string} code  The source that failed.
+ * @param {string} error The error it produced.
+ */
+export function buildRepairPrompt(code, error) {
+  return `The previous createModel implementation failed and must be corrected.
+
+ERROR:
+${error}
+
+FAILING CODE:
+\`\`\`javascript
+${code}
+\`\`\`
+
+Rewrite createModel(THREE) so it runs correctly. Replace any non-existent API
+with one from the geometry allowlist, keeping the intended shape as close as
+possible. Return only the corrected JavaScript.`;
 }
 
 /**
