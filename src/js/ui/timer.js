@@ -26,23 +26,23 @@ export function createTimer(display) {
     start() {
       clear();
       startTime = performance.now();
-      display.textContent = '⏱️ Elapsed: 0.0s';
+      display.textContent = '0.0s';
 
       intervalId = setInterval(() => {
         const elapsed = (performance.now() - startTime) / 1000;
-        display.textContent = `⏱️ Elapsed: ${formatTime(elapsed)}`;
+        display.textContent = formatTime(elapsed);
       }, 100);
     },
 
     stop() {
       clear();
       const elapsed = (performance.now() - startTime) / 1000;
-      display.textContent = `⏱️ Generated in ${formatTime(elapsed)}`;
+      display.textContent = formatTime(elapsed);
     },
 
     fail() {
       clear();
-      display.textContent = '⏱️ Failed';
+      display.textContent = 'Failed';
     },
   };
 }

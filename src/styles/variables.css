@@ -1,14 +1,56 @@
 /* Design tokens shared by every stylesheet. */
 
 :root {
-  --bg-dark: #090d16;
-  --card-bg: rgba(18, 24, 38, 0.90);
-  --accent: #4285f4;
-  --accent-gemini: linear-gradient(135deg, #4285f4, #9b72cb, #d96570);
-  --text: #f8fafc;
-  --text-muted: #94a3b8;
-  --border: rgba(255, 255, 255, 0.12);
-  --border-focus: #4285f4;
-  --error: #ef4444;
-  --success: #10b981;
+  /* --- Surfaces -----------------------------------------------------------
+     Neutral greys with no colour cast, so the 3D model is the only saturated
+     thing on screen. */
+  --bg: #0a0a0b;
+  --panel: #131316;
+  --panel-raised: #18181c;
+  --panel-inset: #0d0d0f;
+
+  /* --- Borders ---
+     Depth comes from hairlines rather than drop shadows. */
+  --border: #26262b;
+  --border-strong: #35353c;
+  --border-focus: #6366f1;
+
+  /* --- Text --- */
+  --text: #fafafa;
+  --text-muted: #a1a1aa;
+  --text-subtle: #71717a;
+
+  /* --- Accent ---
+     Deliberately scarce: the primary action, focus rings, and active states.
+     Nothing else. */
+  --accent: #6366f1;
+  --accent-hover: #7c7ff2;
+  --accent-subtle: rgba(99, 102, 241, 0.12);
+  --accent-border: rgba(99, 102, 241, 0.35);
+
+  /* --- Status --- */
+  --danger: #ef4444;
+  --success: #22c55e;
+
+  /* --- Radii --- */
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+
+  /* --- Spacing scale (4px base) --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
+  /* --- Type --- */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* --- Elevation ---
+     One subtle shadow, used sparingly for genuinely floating surfaces. */
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.45);
 }

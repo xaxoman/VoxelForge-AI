@@ -45,7 +45,7 @@ Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to pr
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-* **Frontend**: Vanilla JavaScript (native ES Modules), HTML5, CSS3 Glassmorphism UI (zero build tools, zero runtime dependencies).
+* **Frontend**: Vanilla JavaScript (native ES Modules), HTML5, CSS3 with a token-driven dark UI and an inline SVG icon sprite (zero build tools, zero runtime dependencies).
 * **3D Engine**: Three.js (r160) with `OrbitControls`, `PCFSoftShadowMap`, and ACES Filmic Tone Mapping.
 * **AI Engine**: Google Gemini API (`gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-2.5-flash`, `gemini-2.0-flash`).
 * **Export Pipeline**: `GLTFExporter` (Binary & JSON), `OBJExporter`, `STLExporter`.
@@ -175,6 +175,26 @@ declared in `index.html`.
             ├── export-menu.js    # Export dropdown behavior
             └── timer.js          # Generation stopwatch
 ```
+
+### Design system
+
+The interface uses a restrained, near-monochrome dark palette so the generated
+model is the only saturated thing on screen. Every colour, radius and spacing
+step is a custom property in `src/styles/variables.css` — restyling the whole
+app means editing that one file.
+
+* **Surfaces** are neutral greys with no colour cast (`#0a0a0b` → `#18181c`).
+* **The accent** (`#6366f1`) is deliberately scarce: the primary action, focus
+  rings, and active toggles. Nothing else competes for attention.
+* **Depth** comes from 1px hairline borders rather than heavy drop shadows.
+* **Icons** are an inline SVG sprite defined once at the top of `index.html`
+  and referenced with `<use href="#i-name">`. They inherit `currentColor`, so a
+  single definition works on every button variant. No emoji in UI chrome —
+  they render inconsistently across platforms and can't be styled.
+* **Numeric readouts** use `font-variant-numeric: tabular-nums` so digits don't
+  jitter as they update.
+* **Type** is Inter, loaded from Google Fonts with a full system fallback stack;
+  the UI degrades cleanly if the font fails to load.
 
 ### Where to change things
 

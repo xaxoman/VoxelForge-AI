@@ -31,20 +31,20 @@ const imageInput = initImageInput({
   preview: dom.imagePreview,
   removeBtn: dom.removeImageBtn,
   onChange: (hasImage) => {
-    dom.generateBtn.textContent = hasImage ? GENERATE_LABELS.image : GENERATE_LABELS.text;
+    dom.generateBtnLabel.textContent = hasImage ? GENERATE_LABELS.image : GENERATE_LABELS.text;
   },
 });
 
 /** Shows the model that actually answered (may differ after a failover). */
 function setModelBadge(model) {
-  dom.activeModelBadge.textContent = model.replace('gemini-', '').toUpperCase();
+  dom.activeModelBadge.textContent = model.replace('gemini-', '');
 }
 
 /** Refreshes the triangle/object readout from the live scene. */
 function refreshStats() {
   const { triangles, meshes } = viewport.getStats();
-  dom.polycountLabel.textContent = `Triangles: ${triangles.toLocaleString()}`;
-  dom.objectCountLabel.textContent = `Objects: ${meshes}`;
+  dom.polycountLabel.textContent = triangles.toLocaleString();
+  dom.objectCountLabel.textContent = meshes;
 }
 
 /** Toggles the loading spinner and the generate button's disabled state. */

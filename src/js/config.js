@@ -41,28 +41,28 @@ export const IMAGE_ENCODE_QUALITY = 0.85;
 export const LIGHTING_PRESETS = {
   studio: {
     key: 0xffffff,
-    fill: 0x4285f4,
-    rim: 0x9b72cb,
+    fill: 0x94a3b8,
+    rim: 0x6366f1,
     ambientIntensity: 0.8,
-    background: 0x090d16,
+    background: 0x0a0a0b,
   },
   cyberpunk: {
     key: 0xff007f,
     fill: 0x00f0ff,
     rim: 0x7928ca,
     ambientIntensity: 0.5,
-    background: 0x050510,
+    background: 0x08080f,
   },
   sunlight: {
     key: 0xfff5ea,
     fill: 0x87ceeb,
     rim: 0xffd700,
     ambientIntensity: 1.0,
-    background: 0x0c1322,
+    background: 0x0f0d0a,
   },
 };
 
-/** Prompts cycled through by the 🎲 random button. */
+/** Prompts cycled through by the shuffle button. */
 export const SAMPLE_PROMPTS = [
   'Cyberpunk racing speeder bike with neon wheels and dual exhausts',
   'Ancient glowing magical staff with floating crystal shards',
@@ -73,6 +73,18 @@ export const SAMPLE_PROMPTS = [
 
 /** Button labels that change depending on whether a reference image is set. */
 export const GENERATE_LABELS = {
-  text: '✨ Generate 3D Model',
-  image: '✨ Recreate Image in 3D',
+  text: 'Generate model',
+  image: 'Recreate in 3D',
+};
+
+/**
+ * Viewport colours. Kept deliberately desaturated so the generated model is the
+ * only saturated thing on screen.
+ */
+export const VIEWPORT_THEME = {
+  background: 0x0a0a0b,
+  fogDensity: 0.025,
+  gridCenterLine: 0x2e2e35,
+  gridLine: 0x1a1a1e,
+  floorShadowOpacity: 0.4,
 };
