@@ -53,18 +53,6 @@ const refine = initRefine({
   onSubmit: (instruction) => handleRefine(instruction),
 });
 
-/**
- * Reflects the model that actually answered. The failover circuit can cascade
- * past the chosen model, so the select is moved to match rather than leaving it
- * claiming a model that never responded.
- */
-function syncSelectedModel(model) {
-  if (dom.modelSelect.value === model) return;
-
-  const known = [...dom.modelSelect.options].some((option) => option.value === model);
-  if (known) dom.modelSelect.value = model;
-}
-
 /** True when the user has asked for merged output. */
 const isMergeEnabled = () => dom.mergeModeSelect.value === 'material';
 
@@ -103,7 +91,7 @@ function setBusy(isBusy, status = '') {
  * and friends). Handing the exact diagnostic back recovers almost all of those,
  * so a hallucinated class costs a few extra seconds instead of a dead end.
  *
- * @returns {Promise<{object: object, model: string, code: string, parts: object[]}>}
+ * @returns {Promise<{object: object, code: string, parts: object[]}>}
  *   `parts` is the request as first asked, so a repaired answer is recorded in
  *   the edit thread under what the user wanted rather than the correction that
  *   got there.
@@ -114,7 +102,7 @@ async function generateWithRepair(request) {
   let requestParts = null;
 
   for (let attempt = 0; attempt <= MAX_REPAIR_ATTEMPTS; attempt += 1) {
-    const { code, model, parts } = await generateModelCode({
+    const { code, parts } = await generateModelCode({
       ...request,
       previousAttempt,
       onStatus: (status) => { dom.loadingText.textContent = status; },
@@ -125,7 +113,7 @@ async function generateWithRepair(request) {
     try {
       dom.loadingText.textContent = 'Assembling 3D scene & calculating normals...';
       const object = await buildModelFromCode(code, { detailLevel: request.detailLevel });
-      return { object, model, code, parts: requestParts };
+      return { object, code, parts: requestParts };
     } catch (err) {
       lastError = err;
       previousAttempt = { code, error: err.message };
@@ -174,7 +162,6 @@ async function runGeneration(request, { status, onBuilt }) {
     });
 
     onBuilt(built);
-    syncSelectedModel(built.model);
     viewport.setModel(built.object);
     refreshStats();
     timer.stop();
