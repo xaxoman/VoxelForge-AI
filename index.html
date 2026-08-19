@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini 3.6 Flash 3D Studio (.GLB / .OBJ / .STL)</title>
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --card-bg: rgba(18, 24, 38, 0.90);
+      --accent: #4285f4;
+      --accent-gemini: linear-gradient(135deg, #4285f4, #9b72cb, #d96570);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: rgba(255, 255, 255, 0.12);
+      --border-focus: #4285f4;
+      --error: #ef4444;
+      --success: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, sans-serif;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    .ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px;
+    }
+
+    .panel {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      pointer-events: auto;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+    }
+
+    .lateral-panel {
+      width: 450px;
+      max-height: calc(100vh - 90px);
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.2) transparent;
+    }
+
+    .lateral-panel::-webkit-scrollbar {
+      width: 6px;
+    }
+    .lateral-panel::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.2);
+      border-radius: 3px;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .gemini-gradient {
+      background: var(--accent-gemini);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 800;
+    }
+
+    .badge {
+      background: rgba(66, 133, 244, 0.2);
+      border: 1px solid #4285f4;
+      color: #93c5fd;
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    p.subtitle {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .section-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #93c5fd;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-top: 4px;
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    input, textarea, select {
+      background: rgba(11, 15, 25, 0.85);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 0.84rem;
+      outline: none;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--border-focus);
+    }
+
+    textarea {
+      resize: none;
+      height: 52px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .image-dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+      background: rgba(11, 15, 25, 0.5);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .image-dropzone:hover, .image-dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(66, 133, 244, 0.08);
+    }
+
+    .dropzone-text {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .dropzone-text span.icon {
+      font-size: 1.2rem;
+    }
+
+    .dropzone-text b {
+      color: var(--text);
+    }
+
+    #file-input {
+      display: none;
+    }
+
+    .image-preview-container {
+      display: none;
+      position: relative;
+      width: 100%;
+      height: 110px;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #000;
+      border: 1px solid var(--border);
+    }
+
+    .image-preview-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .remove-image-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .remove-image-btn:hover {
+      background: var(--error);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 9px 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.82rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+
+    button:hover {
+      opacity: 0.92;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    button.gemini-btn {
+      background: var(--accent-gemini);
+    }
+
+    button.secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+    }
+
+    button.secondary.active-toggle {
+      background: rgba(66, 133, 244, 0.3);
+      border: 1px solid var(--accent);
+      color: #fff;
+    }
+
+    /* Export Dropdown Component */
+    .export-dropdown-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    button.export-main-btn {
+      background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .export-menu {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 8px);
+      right: 0;
+      background: rgba(18, 24, 38, 0.96);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 6px;
+      min-width: 190px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+      z-index: 100;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .export-menu.show {
+      display: flex;
+    }
+
+    .export-option {
+      background: transparent;
+      border: none;
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      text-align: left;
+      justify-content: flex-start;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .export-option:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #38bdf8;
+    }
+
+    .chips-container {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      margin-top: 2px;
+    }
+
+    .chip {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 3px 8px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .chip:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: var(--text);
+    }
+
+    .bottom-panel {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+
+    .model-info {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .timer-badge {
+      color: #93c5fd;
+      font-weight: 600;
+    }
+
+    #loading-indicator {
+      display: none;
+      font-size: 0.8rem;
+      color: #93c5fd;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .spinner {
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-top: 2px solid #4285f4;
+      border-radius: 50%;
+      width: 14px;
+      height: 14px;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .key-status {
+      font-size: 0.7rem;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--error);
+    }
+
+    .status-dot.active {
+      background: var(--success);
+    }
+  </style>
+
+  <!-- ES Module Polyfill & Three.js Exporters -->
+  <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <div class="ui-layer">
+    <!-- Lateral Panel -->
+    <div class="panel lateral-panel">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
+        <h1><span class="gemini-gradient">Gemini</span> 3D Studio</h1>
+        <span class="badge" id="active-model-badge">3.6 FLASH</span>
+      </div>
+      <p class="subtitle">High-Fidelity 3D generation with multi-format 3D export.</p>
+
+      <div class="input-group">
+        <!-- API Key -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+            <label style="font-size:0.72rem; color:var(--text-muted);">GEMINI API KEY</label>
+            <span class="key-status">
+              <span class="status-dot" id="key-dot"></span>
+              <span id="key-status-text">Key Required</span>
+            </span>
+          </div>
+          <input type="password" id="gemini-key" placeholder="Paste Google AI Studio Key (AIzaSy...)">
+        </div>
+
+        <!-- Model Selection -->
+        <div>
+          <label style="font-size:0.68rem; color:var(--text-muted);">MODEL SELECTION</label>
+          <select id="model-select">
+            <option value="gemini-3.6-flash" selected>gemini-3.6-flash (Recommended / Stable)</option>
+            <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+            <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+            <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+            <option value="gemini-3.7-flash">gemini-3.7-flash (Preview)</option>
+          </select>
+        </div>
+
+        <!-- Image Dropzone -->
+        <div>
+          <label style="font-size:0.72rem; color:var(--text-muted);">IMAGE REFERENCE (PASTE CTRL+V)</label>
+          <div class="image-dropzone" id="image-dropzone">
+            <div class="dropzone-text">
+              <span class="icon">🖼️</span>
+              <span><b>Drop</b>, <b>Click</b>, or <b>Paste (Ctrl+V)</b> image</span>
+            </div>
+            <input type="file" id="file-input" accept="image/*">
+          </div>
+
+          <div class="image-preview-container" id="preview-wrapper">
+            <img id="image-preview" src="" alt="Reference Preview">
+            <button class="remove-image-btn" id="remove-image-btn" title="Remove Image">✕</button>
+          </div>
+        </div>
+
+        <!-- Fidelity Settings -->
+        <div class="section-title">⚡ Fidelity & Style Controls</div>
+        <div class="grid-2">
+          <div>
+            <label style="font-size:0.68rem; color:var(--text-muted);">DETAIL LEVEL</label>
+            <select id="detail-level">
+              <option value="ultra" selected>🔥 Ultra (Micro-parts)</option>
+              <option value="high">✨ High (Curved & Smooth)</option>
+              <option value="standard">📦 Standard Low-Poly</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:0.68rem; color:var(--text-muted);">MATERIAL FINISH</label>
+            <select id="material-style">
+              <option value="pbr_realistic" selected>🎨 Realistic PBR</option>
+              <option value="neon_glow">💡 Neon & Glow</option>
+              <option value="stylized_matte">🪵 Stylized Matte</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Prompt -->
+        <div>
+          <label style="font-size:0.72rem; color:var(--text-muted);">PROMPT / INSTRUCTIONS</label>
+          <textarea id="prompt-input" placeholder="e.g. Mario Kart with glossy paint, metallic exhaust, and rubber tires..."></textarea>
+        </div>
+
+        <div class="btn-row">
+          <button class="gemini-btn" id="generate-btn" style="flex: 1;">
+            ✨ Generate 3D Model
+          </button>
+          <button class="secondary" id="random-btn">🎲</button>
+        </div>
+
+        <div class="chips-container">
+          <span class="chip" data-prompt="Formula 1 racing car with aerodynamic wings and slick tires">🏎️ F1 Racer</span>
+          <span class="chip" data-prompt="Futuristic Mecha robot with shoulder cannons and visor">🤖 Mecha</span>
+          <span class="chip" data-prompt="Detailed medieval dragon statue with wings and horn details">🐉 Dragon Statue</span>
+          <span class="chip" data-prompt="Vintage sci-fi raygun blaster with energy canister">🔫 Sci-Fi Blaster</span>
+        </div>
+
+        <div id="loading-indicator">
+          <div class="spinner"></div>
+          <span id="loading-text">Gemini is designing 3D geometry...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Controls & Multi-Format Export -->
+    <div class="panel bottom-panel">
+      <div class="model-info">
+        <span id="mesh-polycount">Triangles: 0</span> | 
+        <span id="mesh-objects">Objects: 0</span> | 
+        <span id="timer-display" class="timer-badge">⏱️ Ready</span>
+      </div>
+      <div class="btn-row">
+        <select id="lighting-preset" style="width: auto; padding: 6px 8px; font-size: 0.78rem;">
+          <option value="studio">💡 Studio Light</option>
+          <option value="cyberpunk">🌆 Cyberpunk Dusk</option>
+          <option value="sunlight">☀️ Warm Sunlight</option>
+        </select>
+        <button class="secondary" id="turntable-toggle">🔄 Auto-Rotate</button>
+        <button class="secondary" id="wireframe-toggle">Wireframe</button>
+        
+        <!-- Multi-Format 3D Export Dropdown -->
+        <div class="export-dropdown-wrapper">
+          <button class="export-main-btn" id="export-dropdown-trigger">
+            📦 Export 3D Asset ▾
+          </button>
+          <div class="export-menu" id="export-menu">
+            <button class="export-option" data-format="glb">📦 .GLB (Binary - Godot/Unity)</button>
+            <button class="export-option" data-format="gltf">📄 .GLTF (JSON Scene)</button>
+            <button class="export-option" data-format="obj">📐 .OBJ (Wavefront 3D)</button>
+            <button class="export-option" data-format="stl">🖨️ .STL (3D Printable)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+    import { OBJExporter } from 'three/addons/exporters/OBJExporter.js';
+    import { STLExporter } from 'three/addons/exporters/STLExporter.js';
+
+    // --- Scene Setup ---
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x090d16);
+    scene.fog = new THREE.FogExp2(0x090d16, 0.03);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(4, 3, 5);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.target.set(0, 1, 0);
+
+    // --- Lighting ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    scene.add(ambientLight);
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+    keyLight.position.set(6, 12, 7);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 2048;
+    keyLight.shadow.mapSize.height = 2048;
+    keyLight.shadow.bias = -0.0001;
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0x4285f4, 1.4);
+    fillLight.position.set(-6, 4, -6);
+    scene.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight(0x9b72cb, 1.2);
+    rimLight.position.set(0, -4, -5);
+    scene.add(rimLight);
+
+    const grid = new THREE.GridHelper(30, 30, 0x4285f4, 0x1e293b);
+    scene.add(grid);
+
+    const floorGeo = new THREE.PlaneGeometry(40, 40);
+    const floorMat = new THREE.ShadowMaterial({ opacity: 0.45 });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    let currentModelGroup = new THREE.Group();
+    scene.add(currentModelGroup);
+    let isWireframe = false;
+    let isAutoRotating = false;
+
+    // --- DOM Elements ---
+    const apiKeyInput = document.getElementById('gemini-key');
+    const modelSelect = document.getElementById('model-select');
+    const activeModelBadge = document.getElementById('active-model-badge');
+    const promptInput = document.getElementById('prompt-input');
+    const detailLevelSelect = document.getElementById('detail-level');
+    const materialStyleSelect = document.getElementById('material-style');
+    const lightingPresetSelect = document.getElementById('lighting-preset');
+    const generateBtn = document.getElementById('generate-btn');
+    const randomBtn = document.getElementById('random-btn');
+    const timerDisplay = document.getElementById('timer-display');
+    const wireframeToggle = document.getElementById('wireframe-toggle');
+    const turntableToggle = document.getElementById('turntable-toggle');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const loadingText = document.getElementById('loading-text');
+    const keyDot = document.getElementById('key-dot');
+    const keyStatusText = document.getElementById('key-status-text');
+
+    const imageDropzone = document.getElementById('image-dropzone');
+    const fileInput = document.getElementById('file-input');
+    const previewWrapper = document.getElementById('preview-wrapper');
+    const imagePreview = document.getElementById('image-preview');
+    const removeImageBtn = document.getElementById('remove-image-btn');
+
+    const exportDropdownTrigger = document.getElementById('export-dropdown-trigger');
+    const exportMenu = document.getElementById('export-menu');
+
+    let activeImageBase64 = null;
+    let activeImageMimeType = null;
+    let timerInterval = null;
+
+    // Model selection updates badge
+    modelSelect.addEventListener('change', (e) => {
+      activeModelBadge.textContent = e.target.value.replace('gemini-', '').toUpperCase();
+    });
+
+    // Key management
+    const savedKey = localStorage.getItem('gemini_api_key');
+    if (savedKey) {
+      apiKeyInput.value = savedKey;
+      updateKeyStatus(true);
+    }
+
+    apiKeyInput.addEventListener('input', (e) => {
+      const val = e.target.value.trim();
+      localStorage.setItem('gemini_api_key', val);
+      updateKeyStatus(val.length > 0);
+    });
+
+    function updateKeyStatus(hasKey) {
+      if (hasKey) {
+        keyDot.classList.add('active');
+        keyStatusText.textContent = 'Key Active';
+      } else {
+        keyDot.classList.remove('active');
+        keyStatusText.textContent = 'Key Required';
+      }
+    }
+
+    // --- Elapsed Timer Helpers ---
+    function formatTime(totalSeconds) {
+      if (totalSeconds < 60) {
+        return `${totalSeconds.toFixed(1)}s`;
+      }
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = (totalSeconds % 60).toFixed(1);
+      return `${mins}m ${secs}s`;
+    }
+
+    function startTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      const startTime = performance.now();
+      timerDisplay.textContent = '⏱️ Elapsed: 0.0s';
+
+      timerInterval = setInterval(() => {
+        const elapsed = (performance.now() - startTime) / 1000;
+        timerDisplay.textContent = `⏱️ Elapsed: ${formatTime(elapsed)}`;
+      }, 100);
+
+      return startTime;
+    }
+
+    function stopTimer(startTime) {
+      if (timerInterval) clearInterval(timerInterval);
+      const totalElapsed = (performance.now() - startTime) / 1000;
+      timerDisplay.textContent = `⏱️ Generated in ${formatTime(totalElapsed)}`;
+    }
+
+    // --- Image Handling ---
+    function processImageFile(file) {
+      if (!file || !file.type.startsWith('image/')) {
+        alert('Please provide a valid image (PNG, JPEG, WebP).');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 800;
+          let w = img.width, h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+            else { w = Math.round((w * maxDim) / h); h = maxDim; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+
+          const dataUrl = canvas.toDataURL(file.type.includes('png') ? 'image/png' : 'image/jpeg', 0.85);
+          const parts = dataUrl.split(',');
+          activeImageMimeType = parts[0].match(/:(.*?);/)[1];
+          activeImageBase64 = parts[1];
+
+          imagePreview.src = dataUrl;
+          imageDropzone.style.display = 'none';
+          previewWrapper.style.display = 'block';
+          generateBtn.textContent = '✨ Recreate Image in 3D';
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearImage() {
+      activeImageBase64 = null;
+      activeImageMimeType = null;
+      imagePreview.src = '';
+      previewWrapper.style.display = 'none';
+      imageDropzone.style.display = 'block';
+      fileInput.value = '';
+      generateBtn.textContent = '✨ Generate 3D Model';
+    }
+
+    removeImageBtn.addEventListener('click', (e) => { e.stopPropagation(); clearImage(); });
+    imageDropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) processImageFile(e.target.files[0]);
+    });
+
+    imageDropzone.addEventListener('dragover', (e) => { e.preventDefault(); imageDropzone.classList.add('dragover'); });
+    imageDropzone.addEventListener('dragleave', () => imageDropzone.classList.remove('dragover'));
+    imageDropzone.addEventListener('drop', (e) => {
+      e.preventDefault(); imageDropzone.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) processImageFile(e.dataTransfer.files[0]);
+    });
+
+    window.addEventListener('paste', (e) => {
+      const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+      for (const item of items) {
+        if (item.type.indexOf('image') === 0) {
+          processImageFile(item.getAsFile());
+          break;
+        }
+      }
+    });
+
+    lightingPresetSelect.addEventListener('change', (e) => {
+      const mode = e.target.value;
+      if (mode === 'studio') {
+        keyLight.color.setHex(0xffffff); fillLight.color.setHex(0x4285f4); rimLight.color.setHex(0x9b72cb);
+        ambientLight.intensity = 0.8; scene.background.setHex(0x090d16);
+      } else if (mode === 'cyberpunk') {
+        keyLight.color.setHex(0xff007f); fillLight.color.setHex(0x00f0ff); rimLight.color.setHex(0x7928ca);
+        ambientLight.intensity = 0.5; scene.background.setHex(0x050510);
+      } else if (mode === 'sunlight') {
+        keyLight.color.setHex(0xfff5ea); fillLight.color.setHex(0x87ceeb); rimLight.color.setHex(0xffd700);
+        ambientLight.intensity = 1.0; scene.background.setHex(0x0c1322);
+      }
+    });
+
+    turntableToggle.addEventListener('click', () => {
+      isAutoRotating = !isAutoRotating;
+      turntableToggle.classList.toggle('active-toggle', isAutoRotating);
+    });
+
+    wireframeToggle.addEventListener('click', () => {
+      isWireframe = !isWireframe;
+      currentModelGroup.traverse(child => {
+        if (child.isMesh && child.material) {
+          if (Array.isArray(child.material)) child.material.forEach(m => m.wireframe = isWireframe);
+          else child.material.wireframe = isWireframe;
+        }
+      });
+    });
+
+    // --- Export Dropdown Toggle ---
+    exportDropdownTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      exportMenu.classList.toggle('show');
+    });
+
+    document.addEventListener('click', () => {
+      exportMenu.classList.remove('show');
+    });
+
+    // --- Helper to trigger downloads ---
+    function downloadBlob(blob, filename) {
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    // --- Export in Multiple Formats ---
+    document.querySelectorAll('.export-option').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        exportMenu.classList.remove('show');
+
+        if (!currentModelGroup || currentModelGroup.children.length === 0) {
+          alert('Please generate a 3D model first!');
+          return;
+        }
+
+        const format = btn.getAttribute('data-format');
+        const baseName = promptInput.value.trim() || (activeImageBase64 ? 'model_asset' : 'model');
+        const sanitized = baseName.toLowerCase().replace(/[^a-z0-9]/g, '_').slice(0, 30);
+
+        if (format === 'glb') {
+          const exporter = new GLTFExporter();
+          exporter.parse(
+            currentModelGroup,
+            (buffer) => downloadBlob(new Blob([buffer], { type: 'application/octet-stream' }), `${sanitized}.glb`),
+            (err) => alert('Export failed: ' + err),
+            { binary: true, embedImages: true }
+          );
+        } else if (format === 'gltf') {
+          const exporter = new GLTFExporter();
+          exporter.parse(
+            currentModelGroup,
+            (json) => downloadBlob(new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' }), `${sanitized}.gltf`),
+            (err) => alert('Export failed: ' + err),
+            { binary: false, embedImages: true }
+          );
+        } else if (format === 'obj') {
+          const exporter = new OBJExporter();
+          const result = exporter.parse(currentModelGroup);
+          downloadBlob(new Blob([result], { type: 'text/plain' }), `${sanitized}.obj`);
+        } else if (format === 'stl') {
+          const exporter = new STLExporter();
+          const result = exporter.parse(currentModelGroup, { binary: true });
+          downloadBlob(new Blob([result], { type: 'application/octet-stream' }), `${sanitized}.stl`);
+        }
+      });
+    });
+
+    // --- System Prompt ---
+    function buildSystemPrompt(detailLevel, materialStyle) {
+      const detailInstructions = {
+        ultra: `
+- ULTRA-HIGH FIDELITY: Break the object down into modular sub-assemblies.
+- Micro-details: Bevels, rims with rubber treads and hubcaps, exhausts, headlights/taillights, spoiler struts, cockpit steering wheel/seat, antennas, panel lines.
+- Use curved composite forms: TorusGeometry, CylinderGeometry with radial segments (16-32), SphereGeometry, CapsuleGeometry, ExtrudeGeometry.
+- Give each distinct part a meaningful mesh.name (e.g. 'Chassis', 'Wheel_Front_Left', 'Cockpit_Glass', 'Spoiler', 'Headlight_Left').`,
+        high: `
+- HIGH FIDELITY: Construct smooth, curved shapes using cylindrical approximations, angled segments, and multi-part hierarchies. Give meshes descriptive mesh.name labels.`,
+        standard: `
+- BALANCED LOW-POLY: Clean geometry focusing on core silhouettes and primary forms.`
+      };
+
+      const materialInstructions = {
+        pbr_realistic: `
+- PBR REALISM:
+  * Painted Shell: { color: <hex>, metalness: 0.85, roughness: 0.15 }
+  * Rubber Tires/Grips: { color: 0x1a1a1a, metalness: 0.05, roughness: 0.95 }
+  * Chrome/Exhaust: { color: 0xd1d5db, metalness: 0.95, roughness: 0.1 }
+  * Headlights/Glow: { color: <hex>, emissive: <hex>, emissiveIntensity: 2.5 }
+  * Glass/Canopy: { color: 0xa5f3fc, transparent: true, opacity: 0.45, roughness: 0.1 }`,
+        neon_glow: `
+- CYBERPUNK GLOW: High-contrast dark metallic hulls ({ metalness: 0.8, roughness: 0.3 }) with bright glowing emissive stripes/neon edges ({ emissiveIntensity: 3.5 }).`,
+        stylized_matte: `
+- STYLIZED MATTE: Low metalness (0.0), medium roughness (0.6), clean vibrant diffuse colors.`
+      };
+
+      return `
+You are an expert Three.js procedural 3D modeler and technical game artist.
+Generate valid, optimized Three.js JavaScript code returning a high-quality 3D model.
+
+FIDELITY SPECIFICATIONS:
+${detailInstructions[detailLevel] || detailInstructions.ultra}
+
+MATERIAL GUIDELINES:
+${materialInstructions[materialStyle] || materialInstructions.pbr_realistic}
+
+MANDATORY RULES:
+1. Define and return ONLY this async function:
+   async function createModel(THREE) {
+       const group = new THREE.Group();
+       group.name = "Root_Model";
+       // construct 3D model with named meshes, geometries, and materials
+       return group;
+   }
+2. Do NOT import THREE or instantiate scene/camera/renderer. Use the passed 'THREE' instance.
+3. Set .castShadow = true and .receiveShadow = true on all meshes.
+4. Center the model at (0, 0, 0) with height scaled between 1.5 and 4 units.
+5. If an image is provided, accurately copy its silhouette, proportions, colors, sub-components, and materials!
+6. Return PURE JavaScript code only inside \`\`\`javascript ... \`\`\` or raw code without markdown explanation.
+`;
+    }
+
+    const FALLBACK_MODELS = [
+      'gemini-3.6-flash',
+      'gemini-3.5-flash',
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash'
+    ];
+
+    async function callGeminiEndpoint(selectedModel, apiKey, payload) {
+      const trialModels = [selectedModel, ...FALLBACK_MODELS.filter(m => m !== selectedModel)];
+      let lastError = null;
+
+      for (const model of trialModels) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        
+        try {
+          loadingText.textContent = `Querying ${model}...`;
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (response.status === 503 || response.status === 429) {
+            console.warn(`Model ${model} returned ${response.status}. Trying next available fallback...`);
+            continue;
+          }
+
+          if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.error?.message || `HTTP ${response.status}`);
+          }
+
+          const data = await response.json();
+          const parts = data.candidates?.[0]?.content?.parts || [];
+          
+          let rawText = '';
+          for (const part of parts) {
+            if (part.text && !part.thought) {
+              rawText += part.text;
+            }
+          }
+          if (!rawText && parts.length > 0) {
+            rawText = parts[parts.length - 1].text || '';
+          }
+
+          if (rawText) {
+            activeModelBadge.textContent = model.replace('gemini-', '').toUpperCase();
+            return rawText.replace(/```javascript/gi, '').replace(/```/g, '').trim();
+          }
+        } catch (err) {
+          lastError = err;
+        }
+      }
+
+      throw lastError || new Error('All model endpoints are busy. Please try again.');
+    }
+
+    async function generateWithGemini(apiKey, textPrompt, imageBase64, imageMimeType, detailLevel, materialStyle, selectedModel) {
+      const systemPrompt = buildSystemPrompt(detailLevel, materialStyle);
+      const userParts = [];
+
+      if (imageBase64 && imageMimeType) {
+        userParts.push({
+          inlineData: { mimeType: imageMimeType, data: imageBase64 }
+        });
+      }
+
+      const promptText = textPrompt
+        ? (imageBase64 ? `Recreate this reference image in maximum 3D fidelity. Additional requirements: "${textPrompt}"` : `Create a high-fidelity 3D model for: "${textPrompt}"`)
+        : `Recreate this reference image in maximum 3D fidelity with faithful geometry, colors, and realistic PBR materials.`;
+
+      userParts.push({ text: promptText });
+
+      const payload = {
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: "user", parts: userParts }],
+        generationConfig: { temperature: 0.6 }
+      };
+
+      return await callGeminiEndpoint(selectedModel, apiKey, payload);
+    }
+
+    async function buildModelFromCode(codeString) {
+      const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+      const executable = new AsyncFunction('THREE', `${codeString}\nreturn createModel(THREE);`);
+      return await executable(THREE);
+    }
+
+    function frameModel(object) {
+      const box = new THREE.Box3().setFromObject(object);
+      const size = box.getSize(new THREE.Vector3());
+      object.position.y -= box.min.y;
+
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const fov = camera.fov * (Math.PI / 180);
+      let cameraDistance = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 2.2;
+      cameraDistance = Math.max(cameraDistance, 3.2);
+
+      camera.position.set(cameraDistance * 0.8, cameraDistance * 0.6, cameraDistance);
+      controls.target.set(0, size.y / 2, 0);
+      controls.update();
+    }
+
+    function updatePolyCount() {
+      let triangles = 0;
+      let meshes = 0;
+      currentModelGroup.traverse(child => {
+        if (child.isMesh && child.geometry) {
+          meshes++;
+          if (child.geometry.index) triangles += child.geometry.index.count / 3;
+          else if (child.geometry.attributes.position) triangles += child.geometry.attributes.position.count / 3;
+        }
+      });
+      document.getElementById('mesh-polycount').textContent = `Triangles: ${Math.round(triangles).toLocaleString()}`;
+      document.getElementById('mesh-objects').textContent = `Objects: ${meshes}`;
+    }
+
+    async function handleGenerate() {
+      const prompt = promptInput.value.trim();
+      const apiKey = apiKeyInput.value.trim();
+      const selectedModel = modelSelect.value;
+      const detailLevel = detailLevelSelect.value;
+      const materialStyle = materialStyleSelect.value;
+
+      if (!apiKey) {
+        alert('Please enter your Google Gemini API Key first.\n(Get one at: https://aistudio.google.com/app/apikey)');
+        apiKeyInput.focus();
+        return;
+      }
+
+      if (!prompt && !activeImageBase64) {
+        alert('Please enter a prompt or attach an image.');
+        return;
+      }
+
+      loadingIndicator.style.display = 'flex';
+      loadingText.textContent = 'Contacting Gemini API...';
+      generateBtn.disabled = true;
+      const startTime = startTimer();
+
+      try {
+        const code = await generateWithGemini(apiKey, prompt, activeImageBase64, activeImageMimeType, detailLevel, materialStyle, selectedModel);
+        loadingText.textContent = 'Assembling 3D scene & calculating normals...';
+
+        const newModel = await buildModelFromCode(code);
+
+        scene.remove(currentModelGroup);
+        currentModelGroup = newModel;
+        scene.add(currentModelGroup);
+
+        frameModel(currentModelGroup);
+        updatePolyCount();
+        stopTimer(startTime);
+      } catch (err) {
+        console.error(err);
+        alert(`Generation Error: ${err.message}`);
+        if (timerInterval) clearInterval(timerInterval);
+        timerDisplay.textContent = '⏱️ Failed';
+      } finally {
+        loadingIndicator.style.display = 'none';
+        generateBtn.disabled = false;
+      }
+    }
+
+    generateBtn.addEventListener('click', handleGenerate);
+
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        promptInput.value = chip.getAttribute('data-prompt');
+        handleGenerate();
+      });
+    });
+
+    const samplePrompts = [
+      "Cyberpunk racing speeder bike with neon wheels and dual exhausts",
+      "Ancient glowing magical staff with floating crystal shards",
+      "Low poly medieval blacksmith anvil with hammer and sparks",
+      "Stylized sci-fi orbital defense satellite with solar panels",
+      "Retro arcade gaming machine with joystick and glowing CRT screen"
+    ];
+    randomBtn.addEventListener('click', () => {
+      promptInput.value = samplePrompts[Math.floor(Math.random() * samplePrompts.length)];
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (isAutoRotating && currentModelGroup) {
+        currentModelGroup.rotation.y += 0.008;
+      }
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>
