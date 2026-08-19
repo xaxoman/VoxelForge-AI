@@ -95,6 +95,19 @@
       <path d="m12 2 9 5-9 5-9-5Z"/>
       <path d="m3 12 9 5 9-5M3 17l9 5 9-5"/>
     </symbol>
+    <symbol id="i-cursor" viewBox="0 0 24 24">
+      <path d="m4 4 7.07 17 2.51-7.42L21 11.07Z"/>
+    </symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24">
+      <path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/>
+      <circle cx="12" cy="12" r="3"/>
+    </symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24">
+      <path d="M10.7 5.1A11 11 0 0 1 12 5c5 0 9 4 9.9 6.6a1 1 0 0 1 0 .7 12 12 0 0 1-2.2 3.3"/>
+      <path d="M6.6 6.6A12 12 0 0 0 2.1 11.6a1 1 0 0 0 0 .7C3 15 7 19 12 19a11 11 0 0 0 5.4-1.4"/>
+      <path d="m2 2 20 20"/>
+      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>
+    </symbol>
     <symbol id="i-chevron-down" viewBox="0 0 24 24">
       <path d="m6 9 6 6 6-6"/>
     </symbol>
@@ -103,6 +116,7 @@
   <div id="canvas-container"></div>
 
   <div class="ui-layer">
+   <div class="top-row">
     <!-- Lateral Panel -->
     <div class="panel lateral-panel">
       <div class="panel-header">
@@ -235,6 +249,78 @@
         </div>
       </div>
     </div>
+
+    <!-- Inspector & Material Editor -->
+    <div class="panel inspector-panel" id="inspector-panel" hidden>
+      <div class="inspector-header">
+        <div class="section-title">
+          <svg class="icon icon-sm" aria-hidden="true"><use href="#i-cursor"/></svg>
+          Inspector
+        </div>
+        <button class="icon-only ghost" id="inspector-close" title="Deselect (Esc)" aria-label="Deselect">
+          <svg class="icon icon-sm" aria-hidden="true"><use href="#i-x"/></svg>
+        </button>
+      </div>
+
+      <p class="inspector-empty" id="inspector-empty">Click any part of the model to inspect it.</p>
+
+      <div class="inspector-body" id="inspector-body" hidden>
+        <div>
+          <label class="field-label">Selected</label>
+          <div class="selected-name mono" id="selected-name">—</div>
+        </div>
+
+        <div>
+          <label class="field-label" for="part-color">Color</label>
+          <div class="color-row">
+            <input type="color" id="part-color" value="#ffffff">
+            <span class="mono color-hex" id="part-color-hex">#ffffff</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="field-label" for="part-metalness">
+            Metalness <span class="mono slider-value" id="part-metalness-value">0.00</span>
+          </label>
+          <input type="range" id="part-metalness" min="0" max="1" step="0.01" value="0">
+        </div>
+
+        <div>
+          <label class="field-label" for="part-roughness">
+            Roughness <span class="mono slider-value" id="part-roughness-value">0.00</span>
+          </label>
+          <input type="range" id="part-roughness" min="0" max="1" step="0.01" value="0">
+        </div>
+
+        <div>
+          <label class="field-label" for="part-emissive">
+            Emissive <span class="mono slider-value" id="part-emissive-value">0.00</span>
+          </label>
+          <input type="range" id="part-emissive" min="0" max="4" step="0.05" value="0">
+        </div>
+
+        <div>
+          <label class="field-label">Visibility</label>
+          <button class="wide" id="part-visibility">
+            <svg class="icon icon-sm" aria-hidden="true"><use href="#i-eye"/></svg>
+            <span id="part-visibility-label">Visible</span>
+          </button>
+        </div>
+
+        <div>
+          <label class="field-label">Transform gizmo</label>
+          <div class="btn-row gizmo-row">
+            <button class="grow" id="gizmo-none" title="No gizmo (Q)">Off</button>
+            <button class="grow" id="gizmo-translate" title="Translate (W)">Move</button>
+            <button class="grow" id="gizmo-rotate" title="Rotate (E)">Rotate</button>
+            <button class="grow" id="gizmo-scale" title="Scale (R)">Scale</button>
+          </div>
+        </div>
+
+        <div class="inspector-stats mono" id="part-stats">—</div>
+      </div>
+    </div>
+   </div>
 
     <!-- Bottom Controls & Multi-Format Export -->
     <div class="panel bottom-panel">

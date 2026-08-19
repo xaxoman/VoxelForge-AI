@@ -42,6 +42,47 @@
   border: 2px solid var(--panel);
 }
 
+/* Lateral panel and inspector share the top band, pinned to opposite edges. */
+.top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 0;
+}
+
+.inspector-panel {
+  width: 268px;
+  max-height: calc(100vh - 104px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+  padding: var(--space-4);
+}
+
+.inspector-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.inspector-panel::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+  border: 2px solid var(--panel);
+}
+
+.inspector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.inspector-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
 .panel-header {
   display: flex;
   align-items: center;

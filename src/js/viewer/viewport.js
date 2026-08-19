@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { createScene } from './scene.js';
 import { createLighting, applyLightingPreset, setEnvironmentActive } from './lighting.js';
 import { EnvironmentManager } from './environment.js';
+import { SelectionManager } from './selection.js';
 import { countMaterialGroups } from '../export/merge.js';
 
 const TURNTABLE_SPEED = 0.008;
@@ -27,6 +28,14 @@ export class Viewport {
 
     this.modelGroup = new THREE.Group();
     this.scene.add(this.modelGroup);
+
+    this.selection = new SelectionManager({
+      scene,
+      camera,
+      renderer,
+      orbitControls: controls,
+      getModel: () => this.modelGroup,
+    });
 
     this.isWireframe = false;
     this.isAutoRotating = false;
@@ -73,6 +82,10 @@ export class Viewport {
    */
   setModel(model) {
     const previous = this.modelGroup;
+
+    // The outgoing model is about to be disposed, so nothing may still point
+    // into it — including the selection outline and transform gizmo.
+    this.selection.clearForNewModel();
 
     this.scene.remove(previous);
     this.modelGroup = model;

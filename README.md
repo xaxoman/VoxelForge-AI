@@ -179,9 +179,9 @@ it then applies to every model you import.
 - [ ] **LOD (Level of Detail) Generator**: Export multi-tier LODs (`LOD0` full detail, `LOD1` medium proxy, `LOD2` low poly) in a single container.
 
 ### Phase 3: In-App Interactive 3D Editor
-- [ ] **Raycast Click-to-Select**: Click any individual part on the canvas to inspect it.
-- [ ] **Live Color & PBR Tweak Gizmo**: Interactive sliders for metalness, roughness, emissive intensity, and color picker without regenerating.
-- [ ] **TransformControls**: Interactive 3D translate/rotate/scale gizmos to nudge parts into place.
+- [x] **Raycast Click-to-Select** — see [Inspector & material editor](#-inspector--material-editor).
+- [x] **Live Color & PBR Tweak Gizmo** — see [Inspector & material editor](#-inspector--material-editor).
+- [x] **TransformControls** — see [Inspector & material editor](#-inspector--material-editor).
 
 ### Phase 4: Procedural Animation & Rigging
 - [ ] **Embedded GLTF Animation Tracks (`THREE.AnimationClip`)**:
@@ -223,6 +223,7 @@ declared in `index.html`.
         │   ├── scene.js          # Scene, camera, renderer, controls, grid, floor
         │   ├── lighting.js       # Three-point rig + lighting presets
         │   ├── environment.js    # HDRI / procedural IBL via PMREMGenerator
+        │   ├── selection.js      # Raycast picking + TransformControls gizmo
         │   └── viewport.js       # Render loop, model swapping, framing, stats
         ├── geometry/
         │   └── csg.js            # Boolean operations, lazily loaded
@@ -240,6 +241,7 @@ declared in `index.html`.
             ├── api-key.js        # Key persistence + status indicator
             ├── image-input.js    # Dropzone, paste, preview, client-side rescaling
             ├── export-menu.js    # Export dropdown behavior
+            ├── inspector.js      # Selection inspector + material editor
             └── timer.js          # Generation stopwatch
 ```
 
@@ -270,6 +272,7 @@ app means editing that one file.
 | Add or reorder fallback models           | `src/js/config.js`                  |
 | Change how Gemini is instructed          | `src/js/ai/prompt-builder.js`       |
 | Add a new export format                  | `src/js/export/model-exporter.js`   |
+| Change the inspector's controls          | `src/js/ui/inspector.js`            |
 | Add or tune a procedural texture         | `src/js/textures/procedural.js`     |
 | Change the CSG budget or operations       | `src/js/geometry/csg.js` + `config.js` |
 | Change how collision hulls are built     | `src/js/export/collision.js`        |
@@ -278,6 +281,51 @@ app means editing that one file.
 | Add an HDRI or change its resolution     | `src/js/config.js` (`ENVIRONMENTS`, `HDRI_BASE_URL`) |
 | Adjust colors and spacing                | `src/styles/variables.css`          |
 | Add a new UI control                     | `index.html` + `src/js/dom.js` + `src/js/main.js` |
+
+---
+
+## 🔍 Inspector & Material Editor
+
+Click any part of the model to open an inspector in the top-right corner and
+adjust it in place — no regeneration, no waiting on the API.
+
+| Control | Does |
+| :--- | :--- |
+| **Color** | Recolours the part's material |
+| **Metalness / Roughness** | Slides between matte and chrome |
+| **Emissive** | Raises glow, seeding the emissive colour from the base colour |
+| **Visibility** | Hides a part without deleting it |
+| **Transform gizmo** | Off / Move / Rotate / Scale handles on the selection |
+
+Keyboard: `Q` `W` `E` `R` switch gizmo mode, `Esc` deselects. Shortcuts are
+ignored while typing in a field.
+
+### How selection stays out of the way
+
+A click is only a selection if the pointer travelled less than 5 px — anything
+further is an orbit, so dragging the view never changes what is selected. The
+raycast tests the model alone, so the grid, floor, gizmo and outline are never
+pickable, and dragging a gizmo axis temporarily disables orbiting.
+
+The selection outline and the transform gizmo live on the **scene**, not inside
+the model group. Everything that walks the model — export, collision hulls,
+geometry merging, the triangle counter — therefore ignores them without needing
+to know the inspector exists. Verified: exporting with an active gizmo yields
+exactly the model's own nodes.
+
+### Edits are real, not preview
+
+Changes are written to the live material, so they are carried into `.glb` /
+`.gltf` exactly as shown. Recolouring a part and exporting produces a file whose
+`baseColorFactor` is the colour you picked.
+
+Edits apply to the **material instance**. Parts that genuinely share one
+material change together, which is what you want when recolouring a car's body
+panels — and generated code usually gives each part its own material, so the
+common case is per-part.
+
+Selection is dropped when a new model is generated, since the outgoing model's
+geometry is disposed at that moment.
 
 ---
 

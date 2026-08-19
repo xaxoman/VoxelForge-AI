@@ -56,6 +56,30 @@ export const dom = {
   drawCallStat: byId('drawcall-stat'),
   timerDisplay: byId('timer-display'),
 
+  // Inspector
+  inspectorPanel: byId('inspector-panel'),
+  inspectorEmpty: byId('inspector-empty'),
+  inspectorBody: byId('inspector-body'),
+  inspectorClose: byId('inspector-close'),
+  selectedName: byId('selected-name'),
+  partColor: byId('part-color'),
+  partColorHex: byId('part-color-hex'),
+  partMetalness: byId('part-metalness'),
+  partMetalnessValue: byId('part-metalness-value'),
+  partRoughness: byId('part-roughness'),
+  partRoughnessValue: byId('part-roughness-value'),
+  partEmissive: byId('part-emissive'),
+  partEmissiveValue: byId('part-emissive-value'),
+  partVisibility: byId('part-visibility'),
+  partVisibilityLabel: byId('part-visibility-label'),
+  partStats: byId('part-stats'),
+  gizmoButtons: {
+    'gizmo-none': byId('gizmo-none'),
+    'gizmo-translate': byId('gizmo-translate'),
+    'gizmo-rotate': byId('gizmo-rotate'),
+    'gizmo-scale': byId('gizmo-scale'),
+  },
+
   // Collections
   promptChips: () => document.querySelectorAll('.chip'),
   exportOptions: () => document.querySelectorAll('.export-option'),
