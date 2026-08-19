@@ -75,6 +75,14 @@ p.subtitle {
   margin-bottom: var(--space-1);
 }
 
+/* Secondary qualifier on a field label, e.g. which formats a setting affects. */
+.label-hint {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--border-strong);
+  margin-left: var(--space-1);
+}
+
 /* Numeric readouts use tabular figures so digits don't jitter as they update. */
 .mono {
   font-family: var(--font-mono);
