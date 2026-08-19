@@ -35,7 +35,7 @@ Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to pr
 │   │  Gemini Vision & LLM Engine      │                │                │
 │   │ ├── Spatial Reasoning Analysis   │                │                │
 │   │ ├── Procedural Three.js Compiler │────────────────┘                │
-│   │ └── Auto-Failover Circuit        │                                 │
+│   │ └── Diagnostic Error Paths      │                                 │
 │   └──────────────────┬───────────────┘                                 │
 │                      ▼                                                 │
 │   ┌────────────────────────────────────────────────────────────────┐   │
@@ -47,7 +47,7 @@ Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to pr
 
 * **Frontend**: Vanilla JavaScript (native ES Modules), HTML5, CSS3 with a token-driven dark UI and an inline SVG icon sprite (zero build tools, zero runtime dependencies).
 * **3D Engine**: Three.js (r160) with `OrbitControls`, `PCFSoftShadowMap`, ACES Filmic Tone Mapping, `PMREMGenerator` image-based lighting, and `three-bvh-csg` booleans (loaded on demand).
-* **AI Engine**: Google Gemini API (`gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.7-flash`).
+* **AI Engine**: Google Gemini API (`gemini-3.6-flash`, `gemini-3.7-flash`).
 * **Export Pipeline**: `GLTFExporter` (Binary & JSON), `OBJExporter`, `STLExporter`.
 
 ---
@@ -91,7 +91,7 @@ Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to pr
 
 ### 7. Resilience & Developer Experience
 * **Self-Repairing Generation**: Generated code is checked against the real Three.js namespace before it runs. If the model invents a class that doesn't exist (`THREE.PrismGeometry` and friends), the exact diagnostic is sent back for a corrective pass — up to `MAX_REPAIR_ATTEMPTS` times — so a hallucinated API costs a few seconds instead of a failed generation. The system prompt also carries an explicit allowlist of the 20 geometry constructors that actually exist.
-* **Auto-Failover Circuit**: Automatically detects `503 High Demand` or `429 Rate Limit` errors and cascades down to available models (`3.6-flash` $\rightarrow$ `3.5-flash` $\rightarrow$ `3.7-flash`). The model select moves to whichever model answered, so a silent failover is still visible.
+* **Diagnostic API Errors**: The model you pick is the only one called — there is no silent failover, because a model that never answers looks healthy when a working one answers in its place. Every failure names the model, the status, what that status actually means for your key, and the raw message the API returned. `429` explains that preview models carry their own — often zero — quota; `404` explains that the id may not be exposed to your key at all; an empty `200` reports the `finishReason` that caused it.
 * **Live Generation Stopwatch**: Real-time timer tracking elapsed seconds during generation and displaying total build time.
 * **Live Mesh Diagnostics**: Dynamic triangle polycount and object-count counters.
 * **Studio Lighting Presets**: Toggle between *Clean Studio Light*, *Cyberpunk Dusk*, and *Warm Sunlight*.
@@ -239,7 +239,7 @@ declared in `index.html`.
         │   └── procedural.js     # Canvas texture factories (decals, weaves, gauges)
         ├── ai/
         │   ├── prompt-builder.js # Detail/material instruction blocks → system prompt
-        │   ├── gemini-client.js  # generateContent + auto-failover circuit
+        │   ├── gemini-client.js  # generateContent + diagnostic error reporting
         │   ├── conversation.js   # The edit thread: turns, revisions, frozen settings
         │   └── model-compiler.js # Evaluates returned code into a Three.js object
         ├── export/
@@ -280,7 +280,8 @@ app means editing that one file.
 
 | I want to…                              | Edit                                |
 | :-------------------------------------- | :---------------------------------- |
-| Add or reorder fallback models           | `src/js/config.js`                  |
+| Add or remove a selectable model         | `index.html` (`#model-select`)      |
+| Reword an API error explanation          | `src/js/ai/gemini-client.js` (`STATUS_EXPLANATIONS`) |
 | Change how Gemini is instructed          | `src/js/ai/prompt-builder.js`       |
 | Change what an edit turn may touch       | `src/js/ai/prompt-builder.js` (`buildEditPrompt`) + `conversation.js` |
 | Add a new export format                  | `src/js/export/model-exporter.js`   |

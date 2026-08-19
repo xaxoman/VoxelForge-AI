@@ -1,9 +1,4 @@
-import {
-  GEMINI_API_BASE,
-  GENERATION_TEMPERATURE,
-  FALLBACK_MODELS,
-  RETRYABLE_STATUSES,
-} from '../config.js';
+import { GEMINI_API_BASE, GENERATION_TEMPERATURE } from '../config.js';
 import {
   buildSystemPrompt,
   buildUserPrompt,
@@ -34,51 +29,73 @@ function extractText(data) {
 }
 
 /**
- * Calls generateContent, cascading down `FALLBACK_MODELS` whenever a model
- * reports high demand or rate limiting.
+ * What each status the Generative Language API returns actually means for the
+ * person looking at the alert.
+ *
+ * The status alone is not actionable — a 429 on a model you have never
+ * successfully called is a different problem from a 429 after a dozen
+ * generations, and only one of them is fixed by waiting.
+ */
+const STATUS_EXPLANATIONS = {
+  400: 'The request was rejected as malformed. If the key was only just pasted, check it copied in full.',
+  401: 'The API key was not accepted. Check it is a Generative Language API key from Google AI Studio.',
+  403: 'This key is not allowed to use this model. The Generative Language API may not be enabled on the project, or the model may be restricted.',
+  404: 'No model with this id exists at this endpoint, or it is not exposed to your key. Preview models are often unavailable outside an allowlist.',
+  429: 'Quota exhausted for this model. Free-tier keys have a small per-minute allowance, and preview models usually carry their own separate — often zero — quota.',
+  500: 'The model failed internally. Retrying usually helps; if it never succeeds, the request itself may be too large.',
+  503: 'The model is overloaded and is refusing work. This is capacity on Google\'s side, not a problem with your request.',
+};
+
+/**
+ * Calls generateContent against exactly the model that was asked for.
+ *
+ * Deliberately no failover. Silently retrying a different model hides which
+ * model is broken and why: a model that never once answers looks like it works,
+ * because a healthy one answers in its place.
  *
  * @param {object} options
- * @param {string} options.model      Preferred model id; tried first.
+ * @param {string} options.model      Model id to call. The only one called.
  * @param {string} options.apiKey
  * @param {object} options.payload    generateContent request body.
  * @param {(status: string) => void} [options.onStatus] Progress callback.
- * @returns {Promise<{code: string, model: string}>} Code and the model that answered.
+ * @returns {Promise<string>} The returned source, stripped of markdown fences.
  */
-async function callWithFailover({ model, apiKey, payload, onStatus }) {
-  const trialModels = [model, ...FALLBACK_MODELS.filter((candidate) => candidate !== model)];
-  let lastError = null;
+async function callModel({ model, apiKey, payload, onStatus }) {
+  onStatus?.(`Querying ${model}...`);
 
-  for (const trialModel of trialModels) {
-    const url = `${GEMINI_API_BASE}/${trialModel}:generateContent?key=${apiKey}`;
-
-    try {
-      onStatus?.(`Querying ${trialModel}...`);
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (RETRYABLE_STATUSES.includes(response.status)) {
-        console.warn(`Model ${trialModel} returned ${response.status}. Trying next available fallback...`);
-        continue;
-      }
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error?.message || `HTTP ${response.status}`);
-      }
-
-      const rawText = extractText(await response.json());
-      if (rawText) {
-        return { code: stripCodeFences(rawText), model: trialModel };
-      }
-    } catch (err) {
-      lastError = err;
-    }
+  let response;
+  try {
+    response = await fetch(`${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    // fetch only rejects when the request never reached the API at all.
+    throw new Error(`Could not reach the Gemini API: ${err.message}\n\nCheck your network connection, and whether an extension or firewall is blocking generativelanguage.googleapis.com.`);
   }
 
-  throw lastError || new Error('All model endpoints are busy. Please try again.');
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    const detail = body.error?.message || response.statusText || 'No detail returned.';
+    const explanation = STATUS_EXPLANATIONS[response.status] || 'The API rejected the request.';
+
+    throw new Error(`${model} returned HTTP ${response.status}.\n\n${explanation}\n\nAPI said: ${detail}`);
+  }
+
+  const data = await response.json();
+  const rawText = extractText(data);
+
+  if (!rawText) {
+    // A 200 with nothing in it is its own failure: the model was reached and
+    // chose not to answer, and the reason for that is in the response.
+    const candidate = data.candidates?.[0];
+    const reason = candidate?.finishReason || data.promptFeedback?.blockReason;
+
+    throw new Error(`${model} accepted the request but returned no code.${reason ? `\n\nIt stopped with: ${reason}.` : ''}\n\nSAFETY or RECITATION means the prompt tripped a filter; MAX_TOKENS means the answer was cut off — ask for less detail.`);
+  }
+
+  return stripCodeFences(rawText);
 }
 
 /**
@@ -140,7 +157,7 @@ function buildUserParts({ references, views, prompt, editInstruction, previousAt
  * @param {(status: string) => void} [options.onStatus]
  * @param {{code: string, error: string}|null} [options.previousAttempt]
  *   When set, asks the model to correct that code instead of starting over.
- * @returns {Promise<{code: string, model: string, parts: object[]}>}
+ * @returns {Promise<{code: string, parts: object[]}>}
  *   `parts` is the user turn as sent, for the caller to record in the thread.
  */
 export async function generateModelCode({
@@ -175,6 +192,6 @@ export async function generateModelCode({
     generationConfig: { temperature: GENERATION_TEMPERATURE },
   };
 
-  const answer = await callWithFailover({ model, apiKey, payload, onStatus });
-  return { ...answer, parts: userParts };
+  const code = await callModel({ model, apiKey, payload, onStatus });
+  return { code, parts: userParts };
 }

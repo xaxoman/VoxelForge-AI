@@ -30,19 +30,6 @@ export const MAX_CSG_TRIANGLES = 50000;
 /** Sampling temperature used for every generation request. */
 export const GENERATION_TEMPERATURE = 0.6;
 
-/**
- * Models the auto-failover circuit cascades through when the selected model
- * answers with "high demand" or "rate limited". Ordered best-first.
- */
-export const FALLBACK_MODELS = [
-  'gemini-3.6-flash',
-  'gemini-3.5-flash',
-  'gemini-3.7-flash',
-];
-
-/** HTTP statuses that should trigger a fallback rather than an error. */
-export const RETRYABLE_STATUSES = [429, 503];
-
 /** Reference images are downscaled to this longest edge before upload. */
 export const MAX_IMAGE_DIMENSION = 800;
 
