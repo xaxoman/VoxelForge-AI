@@ -11,7 +11,7 @@ import { dom } from './dom.js';
 import { Viewport } from './viewer/viewport.js';
 import { generateModelCode } from './ai/gemini-client.js';
 import { buildModelFromCode } from './ai/model-compiler.js';
-import { exportModel } from './export/model-exporter.js';
+import { exportModel, exportUnityPostprocessor } from './export/model-exporter.js';
 import { initApiKeyField } from './ui/api-key.js';
 import { initImageInput } from './ui/image-input.js';
 import { initExportMenu } from './ui/export-menu.js';
@@ -102,6 +102,18 @@ async function handleGenerate() {
 
 /** Exports the current model, guarding against an empty scene. */
 async function handleExport(format) {
+  // The Unity helper is a static file, so it has nothing to do with the scene
+  // and must not be gated behind having generated a model.
+  if (format === 'unity-script') {
+    try {
+      await exportUnityPostprocessor();
+    } catch (err) {
+      console.error(err);
+      alert(`Download failed: ${err.message}`);
+    }
+    return;
+  }
+
   if (!viewport.hasModel()) {
     alert('Please generate a 3D model first!');
     return;
@@ -110,7 +122,12 @@ async function handleExport(format) {
   const fallbackName = imageInput.getImage() ? 'model_asset' : 'model';
 
   try {
-    await exportModel(viewport.getModel(), format, dom.promptInput.value.trim() || fallbackName);
+    await exportModel(
+      viewport.getModel(),
+      format,
+      dom.promptInput.value.trim() || fallbackName,
+      dom.collisionModeSelect.value,
+    );
   } catch (err) {
     console.error(err);
     alert(`Export failed: ${err.message}`);

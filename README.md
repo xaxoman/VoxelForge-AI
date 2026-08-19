@@ -96,15 +96,71 @@ Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to pr
 ## 🎮 Engine Import Workflows
 
 ### Godot 4.x / 3.x
-1. Click **Export 3D Asset** $\rightarrow$ **`.GLB`**.
+1. Pick a **Collision mesh** mode (defaults to *Convex hull*), then **Export** $\rightarrow$ **`.glb`**.
 2. Drag the downloaded `.glb` directly into the Godot `res://` FileSystem dock.
 3. Right-click the asset $\rightarrow$ **New Inherited Scene**.
 4. Access all pre-named child meshes (`Chassis`, `Wheel_FL`, etc.) directly in the Scene Tree.
+5. Collision bodies are already there — Godot reads the `-colonly` / `-convcolonly` suffixes on import. Nothing to add by hand.
 
 ### Unity (2022 / 2023 / 6)
-1. Drag the `.glb` into your `Assets/` directory.
-2. Drag the prefab into the Scene Hierarchy.
-3. Materials automatically map to Unity's Universal Render Pipeline (URP/Lit) with specular and roughness preserved.
+1. Install the importer **once**: **Export** $\rightarrow$ **Unity collider importer (.cs)**, and drop the file into any `Editor` folder in your project (e.g. `Assets/Editor/`).
+2. Drag the `.glb` into your `Assets/` directory.
+3. Drag the prefab into the Scene Hierarchy.
+4. Materials automatically map to Unity's Universal Render Pipeline (URP/Lit) with specular and roughness preserved.
+5. `MeshCollider` components are generated automatically from the same suffixes.
+
+---
+
+## 🛡️ Automatic Collision Meshes
+
+Physics-ready on import, in both engines — no colliders added by hand.
+
+The **Collision mesh** control generates invisible proxy geometry alongside the
+visible model and names it using the suffixes Godot's glTF importer recognises:
+
+| Mode | Produces | Best for |
+| :--- | :--- | :--- |
+| **None** | no proxies | render-only assets, 3D printing |
+| **Box** | one axis-aligned box | crates, pickups, simple props |
+| **Convex hull** *(default)* | one tight hull around the whole model | most props and vehicles |
+| **Convex hull — per part** | one hull per top-level part | vehicles and mechs whose wheels, limbs or turrets need separate shapes |
+
+### How the two engines get there
+
+**Godot** supports this natively. A node whose name ends in a collision suffix
+is converted on import:
+
+| Suffix | Godot result | Visual mesh |
+| :--- | :--- | :--- |
+| `-colonly` | `StaticBody3D` + `ConcavePolygonShape3D` | removed |
+| `-convcolonly` | `StaticBody3D` + `ConvexPolygonShape3D` | removed |
+| `-col` | collision added beside the mesh | **kept** |
+| `-convcol` | convex collision beside the mesh | **kept** |
+
+HyperMesh emits the **`-only`** variants. This matters: `-col` and `-convcol`
+*preserve* the proxy as a visible mesh, which would leave a solid box rendered
+over your model.
+
+**Unity has no such convention** — its importer only offers a blanket "Generate
+Colliders" checkbox that wraps every mesh. To get the same behaviour,
+`integrations/unity/HyperMeshColliderPostprocessor.cs` is an `AssetPostprocessor`
+that reads the identical suffixes, attaches a `MeshCollider` with the right
+convexity, strips the renderer for `-only` proxies, and removes the suffix from
+the object name so the hierarchy matches Godot's. Install it once per project;
+it then applies to every model you import.
+
+### Notes
+
+* Proxies are written **only into `.glb` and `.gltf`**. `.obj` and `.stl` go to
+  modelling and slicing tools, where an extra hull would just be stray geometry.
+* Proxies are never visible in the viewport, and the triangle/object counters
+  continue to report the visible mesh only.
+* Per-part mode roughly doubles file size on a multi-part model — one hull per
+  part is not free. Whole-model convex is the cheaper default.
+* Unity's convex `MeshCollider` is capped at 255 triangles and silently
+  simplifies past that; generated hulls stay well under.
+* Concave (`-colonly`) shapes are static-only in both engines. For a moving
+  physics body, use a convex mode.
 
 ---
 
@@ -116,7 +172,7 @@ Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to pr
 - [ ] **Post-Processing Pipeline**: Add `EffectComposer` with Unreal-style bloom on glowing emissive parts and subtle ambient occlusion (SSAO).
 
 ### Phase 2: Game Engine Production Optimization
-- [ ] **Godot `-col` / `-convcol` Auto-Physics Tagging**: Automatically generate simplified low-poly bounding volumes tagged with `-col` suffixes so Godot automatically builds collision hulls upon import.
+- [x] **Automatic Collision Mesh Generation** — ships as the **Collision mesh** control. Generates invisible proxy hulls tagged with Godot's `-colonly` / `-convcolonly` suffixes, plus a Unity `AssetPostprocessor` that reads the same suffixes. See [Automatic collision meshes](#-automatic-collision-meshes).
 - [ ] **Draw Call Optimization (`BufferGeometryUtils.mergeGeometries`)**: Provide a toggle to merge meshes sharing identical materials, dropping draw calls from 80+ down to 3–5 for mobile/VR performance.
 - [ ] **LOD (Level of Detail) Generator**: Export multi-tier LODs (`LOD0` full detail, `LOD1` medium proxy, `LOD2` low poly) in a single container.
 
@@ -148,6 +204,8 @@ declared in `index.html`.
 .
 ├── index.html                    # Markup only — structure, import map, entry points
 ├── package.json                  # Static-server scripts (no runtime dependencies)
+├── integrations/
+│   └── unity/                    # AssetPostprocessor giving Unity Godot's collider suffixes
 └── src/
     ├── styles/
     │   ├── main.css              # Entry point: @imports the four sheets below
@@ -168,7 +226,8 @@ declared in `index.html`.
         │   ├── gemini-client.js  # generateContent + auto-failover circuit
         │   └── model-compiler.js # Evaluates returned code into a Three.js object
         ├── export/
-        │   └── model-exporter.js # .GLB / .GLTF / .OBJ / .STL exporters
+        │   ├── model-exporter.js # .GLB / .GLTF / .OBJ / .STL exporters
+        │   └── collision.js      # Collision proxy hulls + Godot name suffixes
         └── ui/
             ├── api-key.js        # Key persistence + status indicator
             ├── image-input.js    # Dropzone, paste, preview, client-side rescaling
@@ -203,6 +262,7 @@ app means editing that one file.
 | Add or reorder fallback models           | `src/js/config.js`                  |
 | Change how Gemini is instructed          | `src/js/ai/prompt-builder.js`       |
 | Add a new export format                  | `src/js/export/model-exporter.js`   |
+| Change how collision hulls are built     | `src/js/export/collision.js`        |
 | Tweak lights or add a lighting preset    | `src/js/config.js` + `src/js/viewer/lighting.js` |
 | Adjust colors and spacing                | `src/styles/variables.css`          |
 | Add a new UI control                     | `index.html` + `src/js/dom.js` + `src/js/main.js` |

@@ -21,6 +21,7 @@ export const dom = {
   activeModelBadge: byId('active-model-badge'),
   detailLevelSelect: byId('detail-level'),
   materialStyleSelect: byId('material-style'),
+  collisionModeSelect: byId('collision-mode'),
   promptInput: byId('prompt-input'),
 
   // Reference image

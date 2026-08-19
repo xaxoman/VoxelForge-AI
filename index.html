@@ -180,6 +180,19 @@
           </div>
         </div>
 
+        <div>
+          <label class="field-label" for="collision-mode">
+            Collision mesh
+            <span class="label-hint">.glb / .gltf</span>
+          </label>
+          <select id="collision-mode" title="Adds invisible collision proxies that Godot and Unity turn into colliders on import">
+            <option value="none">None</option>
+            <option value="box">Box — whole model</option>
+            <option value="convex" selected>Convex hull — whole model</option>
+            <option value="parts">Convex hull — per part</option>
+          </select>
+        </div>
+
         <!-- Prompt -->
         <div>
           <label class="field-label" for="prompt-input">Prompt</label>
@@ -269,6 +282,13 @@
               <svg class="icon icon-sm" aria-hidden="true"><use href="#i-printer"/></svg>
               3D printing
               <span class="format-hint">.stl</span>
+            </button>
+            <div class="export-menu-divider"></div>
+            <div class="export-menu-label">Engine helper</div>
+            <button class="export-option" data-format="unity-script">
+              <svg class="icon icon-sm" aria-hidden="true"><use href="#i-file"/></svg>
+              Unity collider importer
+              <span class="format-hint">.cs</span>
             </button>
           </div>
         </div>

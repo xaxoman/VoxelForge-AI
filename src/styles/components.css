@@ -274,6 +274,12 @@ button.active-toggle:hover {
   padding: var(--space-2) var(--space-2) var(--space-1);
 }
 
+.export-menu-divider {
+  height: 1px;
+  background: var(--border);
+  margin: var(--space-1) 0;
+}
+
 .export-option {
   background: transparent;
   border: none;

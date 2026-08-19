@@ -78,6 +78,26 @@ export const GENERATE_LABELS = {
 };
 
 /**
+ * Collision proxy modes offered in the UI, keyed by the value of the
+ * #collision-mode select. Proxies are only written into .glb/.gltf, the two
+ * formats game engines actually import.
+ */
+export const COLLISION_MODES = ['none', 'box', 'convex', 'parts'];
+
+/** Default collision mode — a single convex hull suits most props. */
+export const DEFAULT_COLLISION_MODE = 'convex';
+
+/**
+ * Ceiling on the point count fed to the convex hull builder. Hulls depend only
+ * on extreme points, so thinning a dense mesh barely changes the result while
+ * keeping export snappy on 20k-triangle models.
+ */
+export const MAX_HULL_POINTS = 8000;
+
+/** Editor script that teaches Unity the same suffixes Godot reads natively. */
+export const UNITY_POSTPROCESSOR_PATH = './integrations/unity/HyperMeshColliderPostprocessor.cs';
+
+/**
  * Viewport colours. Kept deliberately desaturated so the generated model is the
  * only saturated thing on screen.
  */
