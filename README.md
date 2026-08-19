@@ -169,7 +169,7 @@ it then applies to every model you import.
 
 ### Phase 1: Visual Realism & Shading
 - [x] **HDRI Image-Based Lighting (IBL)** — ships as the **Environment** control, with a procedural studio default and optional Poly Haven CC0 HDRIs. See [Reflections & environment lighting](#-reflections--environment-lighting).
-- [ ] **Procedural Canvas Texture Baking**: Generate dynamic 2D canvas textures (racing stripes, decals, carbon fiber weaves, license plates) mapped to UV coordinates.
+- [x] **Procedural Canvas Texture Baking** — ships as the `TEX` library handed to generated code. See [Procedural textures](#-procedural-textures).
 - [ ] **Post-Processing Pipeline**: Add `EffectComposer` with Unreal-style bloom on glowing emissive parts and subtle ambient occlusion (SSAO).
 
 ### Phase 2: Game Engine Production Optimization
@@ -223,6 +223,8 @@ declared in `index.html`.
         │   ├── lighting.js       # Three-point rig + lighting presets
         │   ├── environment.js    # HDRI / procedural IBL via PMREMGenerator
         │   └── viewport.js       # Render loop, model swapping, framing, stats
+        ├── textures/
+        │   └── procedural.js     # Canvas texture factories (decals, weaves, gauges)
         ├── ai/
         │   ├── prompt-builder.js # Detail/material instruction blocks → system prompt
         │   ├── gemini-client.js  # generateContent + auto-failover circuit
@@ -265,12 +267,72 @@ app means editing that one file.
 | Add or reorder fallback models           | `src/js/config.js`                  |
 | Change how Gemini is instructed          | `src/js/ai/prompt-builder.js`       |
 | Add a new export format                  | `src/js/export/model-exporter.js`   |
+| Add or tune a procedural texture         | `src/js/textures/procedural.js`     |
 | Change how collision hulls are built     | `src/js/export/collision.js`        |
 | Change how meshes are grouped for merging | `src/js/export/merge.js`           |
 | Tweak lights or add a lighting preset    | `src/js/config.js` + `src/js/viewer/lighting.js` |
 | Add an HDRI or change its resolution     | `src/js/config.js` (`ENVIRONMENTS`, `HDRI_BASE_URL`) |
 | Adjust colors and spacing                | `src/styles/variables.css`          |
 | Add a new UI control                     | `index.html` + `src/js/dom.js` + `src/js/main.js` |
+
+---
+
+## 🎨 Procedural Textures
+
+Some surface detail is far cheaper to paint than to model. A racing number is
+one textured quad; extruding the letterforms is hundreds of triangles that also
+have to be positioned and beveled. Generated code therefore receives a texture
+library as a second argument and can draw straight onto an offscreen canvas:
+
+```js
+async function createModel(THREE, TEX) {
+  const door = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.2, 1.2),
+    new THREE.MeshStandardMaterial({
+      map: TEX.racingNumber({ text: '07', background: '#1d4ed8' }),
+      metalness: 0.4, roughness: 0.35,
+    }),
+  );
+  door.name = 'Door_Decal_Left';
+  // …
+}
+```
+
+### Available factories
+
+| Factory | Draws | Key options |
+| :--- | :--- | :--- |
+| `TEX.carbonFiber` | twill carbon weave | `color`, `highlight`, `weave`, `repeat` |
+| `TEX.racingNumber` | number or short decal text, optional roundel | `text`, `color`, `background`, `outline`, `roundel` |
+| `TEX.stripes` | racing stripes at any angle | `colors`, `count`, `angle`, `thickness`, `background` |
+| `TEX.rust` | rust blotches and grime | `base`, `rust`, `amount`, `seed`, `repeat` |
+| `TEX.gauge` | cockpit dial with ticks and needle | `label`, `ticks`, `value`, `face`, `accent` |
+| `TEX.licensePlate` | registration plate | `text`, `background`, `color`, `border` |
+| `TEX.panelLines` | hull seams and rivets | `base`, `line`, `cells`, `rivets`, `repeat` |
+
+Each returns a `THREE.CanvasTexture` tagged sRGB, ready for `material.map` or
+any other map slot.
+
+### Notes
+
+* **Resolution follows the Detail level** — Ultra bakes at 1024px, High at
+  512px, Standard at 256px, so decals track overall fidelity without another
+  control.
+* **Textures export.** `GLTFExporter` embeds each canvas as a PNG, so `.glb`
+  and `.gltf` carry the livery into Godot and Unity. `.obj` and `.stl` have no
+  practical texture path and are unaffected.
+* **They are not free.** Five 512px textures took one test export from ~11 KB
+  to ~424 KB. Drop the Detail level, or ask for fewer decals, if size matters.
+* **`TEX.rust` is deterministic** — the same `seed` always weathers the same
+  way, so a regenerated asset matches.
+* Invented factory names are caught by the same validator that guards THREE
+  classes, and routed to the same repair pass.
+* `createModel(THREE)` written without the second parameter keeps working
+  untouched — JavaScript ignores the surplus argument.
+* Replacing a model now frees its geometry, materials and textures. Several
+  megabytes of canvas per generation would otherwise accumulate for the life of
+  the tab. Disposal is held while an export is in flight, since the exporter
+  borrows the live model's materials.
 
 ---
 

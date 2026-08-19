@@ -31,6 +31,11 @@ export class Viewport {
     this.isWireframe = false;
     this.isAutoRotating = false;
 
+    // Replaced models are released, but an export borrows the live model's
+    // materials — so disposal waits while one is in flight.
+    this.disposalHeld = false;
+    this.pendingDisposal = [];
+
     window.addEventListener('resize', () => this.handleResize());
   }
 
@@ -67,12 +72,62 @@ export class Viewport {
    * @param {THREE.Object3D} model
    */
   setModel(model) {
-    this.scene.remove(this.modelGroup);
+    const previous = this.modelGroup;
+
+    this.scene.remove(previous);
     this.modelGroup = model;
     this.scene.add(this.modelGroup);
 
     if (this.isWireframe) this.applyWireframe();
     this.frameModel(this.modelGroup);
+
+    this.release(previous);
+  }
+
+  /**
+   * Frees GPU resources owned by a discarded model.
+   *
+   * Procedural textures make this matter: a handful of 512px canvases is
+   * several megabytes per generation, which would otherwise accumulate for the
+   * life of the tab.
+   */
+  release(object) {
+    if (!object) return;
+
+    if (this.disposalHeld) {
+      this.pendingDisposal.push(object);
+      return;
+    }
+
+    object.traverse((child) => {
+      if (!child.isMesh) return;
+
+      child.geometry?.dispose();
+      const materials = Array.isArray(child.material) ? child.material : [child.material];
+
+      materials.filter(Boolean).forEach((material) => {
+        // Any map slot may hold a canvas texture; free them all.
+        Object.values(material).forEach((value) => {
+          if (value && value.isTexture) value.dispose();
+        });
+        material.dispose();
+      });
+    });
+  }
+
+  /**
+   * Defers disposal while an export borrows the live model's materials.
+   * Releasing the hold flushes anything that piled up behind it.
+   *
+   * @param {boolean} held
+   */
+  holdDisposal(held) {
+    this.disposalHeld = held;
+    if (held) return;
+
+    const queued = this.pendingDisposal;
+    this.pendingDisposal = [];
+    queued.forEach((object) => this.release(object));
   }
 
   /** Sits the object on the floor and pulls the camera back to fit it. */
