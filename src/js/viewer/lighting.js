@@ -9,10 +9,10 @@ import { LIGHTING_PRESETS } from '../config.js';
  *            fill: THREE.DirectionalLight, rim: THREE.DirectionalLight}}
  */
 export function createLighting(scene) {
-  const ambient = new THREE.AmbientLight(0xffffff, 0.8);
+  const ambient = new THREE.AmbientLight(0xffffff, 0.9);
   scene.add(ambient);
 
-  const key = new THREE.DirectionalLight(0xffffff, 2.2);
+  const key = new THREE.DirectionalLight(0xffffff, 1.8);
   key.position.set(6, 12, 7);
   key.castShadow = true;
   key.shadow.mapSize.width = 2048;
@@ -20,12 +20,14 @@ export function createLighting(scene) {
   key.shadow.bias = -0.0001;
   scene.add(key);
 
-  const fill = new THREE.DirectionalLight(0x4285f4, 1.4);
+  const fill = new THREE.DirectionalLight(0x94a3b8, 1.1);
   fill.position.set(-6, 4, -6);
   scene.add(fill);
 
-  const rim = new THREE.DirectionalLight(0x9b72cb, 1.2);
-  rim.position.set(0, -4, -5);
+  // Backlight rather than uplight: sits behind and slightly above, so it
+  // separates the silhouette instead of washing the front with colour.
+  const rim = new THREE.DirectionalLight(0x6366f1, 0.6);
+  rim.position.set(0, 3, -7);
   scene.add(rim);
 
   return { ambient, key, fill, rim };

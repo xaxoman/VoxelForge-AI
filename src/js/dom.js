@@ -32,6 +32,7 @@ export const dom = {
 
   // Actions
   generateBtn: byId('generate-btn'),
+  generateBtnLabel: byId('generate-btn-label'),
   randomBtn: byId('random-btn'),
   loadingIndicator: byId('loading-indicator'),
   loadingText: byId('loading-text'),

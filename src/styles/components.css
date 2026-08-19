@@ -1,78 +1,118 @@
 /* Reusable UI widgets: badges, form controls, buttons, dropzone, export menu. */
 
 .badge {
-  background: rgba(66, 133, 244, 0.2);
-  border: 1px solid #4285f4;
-  color: #93c5fd;
-  font-size: 0.65rem;
-  padding: 2px 6px;
-  border-radius: 6px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.02em;
+  padding: 3px var(--space-2);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
 }
 
 /* --- Form controls --- */
 
-input, textarea, select {
-  background: rgba(11, 15, 25, 0.85);
+input,
+textarea,
+select {
+  background: var(--panel-inset);
   border: 1px solid var(--border);
   color: var(--text);
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-size: 0.84rem;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
   outline: none;
-  transition: border-color 0.2s;
   width: 100%;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-input:focus, textarea:focus, select:focus {
-  border-color: var(--border-focus);
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-subtle);
+}
+
+input:hover,
+textarea:hover,
+select:hover {
+  border-color: var(--border-strong);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
 textarea {
   resize: none;
-  height: 52px;
+  height: 64px;
+  line-height: 1.5;
+}
+
+/* Native arrow removed in favour of a consistent chevron. */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-2) center;
+  background-size: 14px;
+  padding-right: var(--space-6);
+  cursor: pointer;
+  text-overflow: ellipsis;
 }
 
 select.inline {
   width: auto;
-  padding: 6px 8px;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
+  padding: var(--space-2) var(--space-6) var(--space-2) var(--space-3);
+  background-color: var(--panel-raised);
+}
+
+option {
+  background: var(--panel-raised);
+  color: var(--text);
 }
 
 /* --- Image reference dropzone --- */
 
 .image-dropzone {
-  border: 2px dashed var(--border);
-  border-radius: 10px;
-  padding: 10px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  padding: var(--space-5) var(--space-3);
   text-align: center;
-  background: rgba(11, 15, 25, 0.5);
+  background: var(--panel-inset);
   cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-.image-dropzone:hover, .image-dropzone.dragover {
+.image-dropzone:hover,
+.image-dropzone.dragover {
   border-color: var(--accent);
-  background: rgba(66, 133, 244, 0.08);
+  background: var(--accent-subtle);
 }
 
 .dropzone-text {
-  font-size: 0.74rem;
-  color: var(--text-muted);
+  font-size: 0.75rem;
+  color: var(--text-subtle);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-2);
 }
 
-.dropzone-text span.icon {
-  font-size: 1.2rem;
+.dropzone-text .icon {
+  width: 20px;
+  height: 20px;
+  color: var(--text-subtle);
 }
 
 .dropzone-text b {
-  color: var(--text);
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 #file-input {
@@ -83,10 +123,10 @@ select.inline {
   display: none;
   position: relative;
   width: 100%;
-  height: 110px;
-  border-radius: 8px;
+  height: 120px;
+  border-radius: var(--radius);
   overflow: hidden;
-  background: #000;
+  background: var(--panel-inset);
   border: 1px solid var(--border);
 }
 
@@ -98,73 +138,104 @@ select.inline {
 
 .remove-image-btn {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  width: 22px;
-  height: 22px;
-  font-size: 11px;
+  top: var(--space-2);
+  right: var(--space-2);
+  background: rgba(10, 10, 11, 0.85);
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  width: 24px;
+  height: 24px;
+  padding: 0;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: color 0.15s ease, border-color 0.15s ease;
 }
 
 .remove-image-btn:hover {
-  background: var(--error);
+  color: var(--danger);
+  border-color: var(--danger);
 }
 
-/* --- Buttons --- */
+/* --- Buttons ---
+   Default is the neutral/secondary treatment; the accent is opt-in so only the
+   primary action carries it. */
 
 button {
-  background: var(--accent);
-  color: white;
-  border: none;
-  padding: 9px 14px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.82rem;
+  background: var(--panel-raised);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 0.8125rem;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  transition: transform 0.1s, opacity 0.2s;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 button:hover {
-  opacity: 0.92;
+  border-color: var(--border-strong);
+  background: #1f1f24;
 }
 
 button:active {
-  transform: scale(0.98);
+  transform: translateY(0.5px);
 }
 
 button:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
+}
+
+button:disabled:hover {
+  background: var(--panel-raised);
+  border-color: var(--border);
 }
 
 button.grow {
   flex: 1;
 }
 
-button.gemini-btn {
-  background: var(--accent-gemini);
+/* The one accented control on screen. */
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
 }
 
-button.secondary {
-  background: rgba(255, 255, 255, 0.08);
+button.primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+button.primary:disabled:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+button.icon-only {
+  padding: var(--space-2);
+  width: 34px;
+}
+
+/* Toggles read as pressed via a tinted fill, not a colour change. */
+button.active-toggle {
+  background: var(--accent-subtle);
+  border-color: var(--accent-border);
   color: var(--text);
 }
 
-button.secondary.active-toggle {
-  background: rgba(66, 133, 244, 0.3);
-  border: 1px solid var(--accent);
-  color: #fff;
+button.active-toggle:hover {
+  background: var(--accent-subtle);
+  border-color: var(--accent);
 }
 
 /* --- Export dropdown --- */
@@ -174,119 +245,149 @@ button.secondary.active-toggle {
   display: inline-block;
 }
 
-button.export-main-btn {
-  background: linear-gradient(135deg, #10b981, #059669);
-}
-
 .export-menu {
   display: none;
   position: absolute;
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + var(--space-2));
   right: 0;
-  background: rgba(18, 24, 38, 0.96);
-  backdrop-filter: blur(16px);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 6px;
-  min-width: 190px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  background: var(--panel-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: var(--space-1);
+  min-width: 220px;
+  box-shadow: var(--shadow-lg);
   z-index: 100;
   flex-direction: column;
-  gap: 4px;
+  gap: 1px;
 }
 
 .export-menu.show {
   display: flex;
 }
 
+.export-menu-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--text-subtle);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: var(--space-2) var(--space-2) var(--space-1);
+}
+
 .export-option {
   background: transparent;
   border: none;
-  color: var(--text);
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 0.8rem;
+  color: var(--text-muted);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 400;
   text-align: left;
   justify-content: flex-start;
-  cursor: pointer;
-  transition: background 0.15s;
+  gap: var(--space-2);
+  width: 100%;
 }
 
 .export-option:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #38bdf8;
+  background: var(--accent-subtle);
+  border-color: transparent;
+  color: var(--text);
+}
+
+.export-option .icon {
+  color: var(--text-subtle);
+}
+
+.export-option:hover .icon {
+  color: var(--accent);
+}
+
+.export-option .format-hint {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--text-subtle);
 }
 
 /* --- Prompt chips --- */
 
 .chips-container {
   display: flex;
-  gap: 5px;
+  gap: var(--space-1);
   flex-wrap: wrap;
-  margin-top: 2px;
 }
 
 .chip {
-  background: rgba(255, 255, 255, 0.06);
+  background: transparent;
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 3px 8px;
-  font-size: 0.7rem;
-  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 3px var(--space-3);
+  font-size: 0.6875rem;
+  color: var(--text-subtle);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: color 0.15s ease, border-color 0.15s ease;
 }
 
 .chip:hover {
-  background: rgba(255, 255, 255, 0.15);
   color: var(--text);
+  border-color: var(--border-strong);
 }
 
 /* --- Status readouts --- */
 
 .model-info {
-  font-size: 0.78rem;
-  color: var(--text-muted);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
+  color: var(--text-subtle);
 }
 
-.timer-badge {
-  color: #93c5fd;
-  font-weight: 600;
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stat .icon {
+  color: var(--text-subtle);
+}
+
+.stat-value {
+  color: var(--text-muted);
 }
 
 #loading-indicator {
   display: none;
-  font-size: 0.8rem;
-  color: #93c5fd;
+  font-size: 0.75rem;
+  color: var(--text-muted);
   align-items: center;
-  gap: 8px;
-  margin-top: 4px;
+  gap: var(--space-2);
 }
 
 .spinner {
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-top: 2px solid #4285f4;
+  border: 1.5px solid var(--border-strong);
+  border-top-color: var(--accent);
   border-radius: 50%;
-  width: 14px;
-  height: 14px;
-  animation: spin 0.8s linear infinite;
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  animation: spin 0.7s linear infinite;
 }
 
 .key-status {
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
+  color: var(--text-subtle);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
 }
 
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: var(--error);
+  background: var(--text-subtle);
+  transition: background 0.15s ease;
 }
 
 .status-dot.active {

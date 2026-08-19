@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { VIEWPORT_THEME } from '../config.js';
 
 /**
  * Builds the static parts of the 3D stage: scene, camera, renderer, orbit
@@ -9,8 +10,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
  */
 export function createScene(container) {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x090d16);
-  scene.fog = new THREE.FogExp2(0x090d16, 0.03);
+  scene.background = new THREE.Color(VIEWPORT_THEME.background);
+  scene.fog = new THREE.FogExp2(VIEWPORT_THEME.background, VIEWPORT_THEME.fogDensity);
 
   const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.set(4, 3, 5);
@@ -29,12 +30,12 @@ export function createScene(container) {
   controls.dampingFactor = 0.05;
   controls.target.set(0, 1, 0);
 
-  const grid = new THREE.GridHelper(30, 30, 0x4285f4, 0x1e293b);
+  const grid = new THREE.GridHelper(30, 30, VIEWPORT_THEME.gridCenterLine, VIEWPORT_THEME.gridLine);
   scene.add(grid);
 
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(40, 40),
-    new THREE.ShadowMaterial({ opacity: 0.45 }),
+    new THREE.ShadowMaterial({ opacity: VIEWPORT_THEME.floorShadowOpacity }),
   );
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;

@@ -1,15 +1,24 @@
 /* Reset, document shell, typography and shared animations. */
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, sans-serif;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background: var(--bg-dark);
+  background: var(--bg);
   color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
   overflow: hidden;
   height: 100vh;
   width: 100vw;
@@ -17,59 +26,92 @@ body {
 
 #canvas-container {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   z-index: 1;
 }
 
+/* --- Typography --- */
+
 h1 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  margin-bottom: 2px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
-.gemini-gradient {
-  background: var(--accent-gemini);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 800;
+/* Small accent dot standing in for a logo mark. */
+.wordmark-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
 }
 
 p.subtitle {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  margin-bottom: 12px;
+  font-size: 0.75rem;
+  color: var(--text-subtle);
+  margin-bottom: var(--space-4);
 }
 
 .section-title {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #93c5fd;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  margin-top: 4px;
-  margin-bottom: 2px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  margin-top: var(--space-2);
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-2);
 }
 
 .field-label {
   display: block;
-  font-size: 0.72rem;
-  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--text-subtle);
+  margin-bottom: var(--space-1);
 }
 
-.field-label.compact {
-  font-size: 0.68rem;
+/* Numeric readouts use tabular figures so digits don't jitter as they update. */
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Icons ---
+   Inline SVG sprites inherit colour from their parent, so a single icon works
+   on every button variant. */
+.icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon-sm {
+  width: 13px;
+  height: 13px;
+}
+
+.sprite {
+  display: none;
+}
+
+/* --- Focus ---
+   Visible for keyboard users, invisible for mouse users. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  to { transform: rotate(360deg); }
 }
