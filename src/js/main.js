@@ -92,7 +92,8 @@ async function generateWithRepair(request) {
 
     try {
       dom.loadingText.textContent = 'Assembling 3D scene & calculating normals...';
-      return { object: await buildModelFromCode(code), model };
+      const object = await buildModelFromCode(code, { detailLevel: request.detailLevel });
+      return { object, model };
     } catch (err) {
       lastError = err;
       previousAttempt = { code, error: err.message };
@@ -173,6 +174,9 @@ async function handleExport(format) {
 
   const fallbackName = imageInput.getImage() ? 'model_asset' : 'model';
 
+  // The exporter reads the live model's materials; hold disposal so a
+  // generation finishing mid-export can't free them underneath it.
+  viewport.holdDisposal(true);
   try {
     await exportModel(
       viewport.getModel(),
@@ -183,6 +187,8 @@ async function handleExport(format) {
   } catch (err) {
     console.error(err);
     alert(`Export failed: ${err.message}`);
+  } finally {
+    viewport.holdDisposal(false);
   }
 }
 

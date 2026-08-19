@@ -1,4 +1,9 @@
 import * as THREE from 'three';
+import {
+  createTextureLibrary,
+  TEXTURE_FACTORIES,
+  TEXTURE_RESOLUTION,
+} from '../textures/procedural.js';
 
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 
@@ -42,6 +47,32 @@ export function findUnknownThreeClasses(source) {
   return unknown;
 }
 
+/**
+ * Finds `TEX.something(...)` calls naming a texture factory that does not exist.
+ *
+ * Same failure mode as invented THREE classes, same treatment: caught before
+ * execution so the repair pass gets a precise diagnostic.
+ *
+ * @param {string} source
+ * @returns {string[]}
+ */
+export function findUnknownTextureFactories(source) {
+  const code = stripNonCode(source);
+  const unknown = [];
+
+  for (const match of code.matchAll(/\bTEX\s*\.\s*([A-Za-z_$][\w$]*)\s*\(/g)) {
+    const name = match[1];
+    if (!TEXTURE_FACTORIES.includes(name) && !unknown.includes(name)) unknown.push(name);
+  }
+
+  return unknown;
+}
+
+/** Texture canvas edge length for a detail level, defaulting to high. */
+function resolutionFor(detailLevel) {
+  return TEXTURE_RESOLUTION[detailLevel] ?? TEXTURE_RESOLUTION.high;
+}
+
 /** Every geometry class the core THREE namespace actually exports. */
 export function listAvailableGeometries() {
   return Object.keys(THREE)
@@ -56,25 +87,39 @@ export function listAvailableGeometries() {
  * The generated code is only ever executed against the shared THREE namespace —
  * it receives no other bindings.
  *
- * @param {string} codeString Source defining `async function createModel(THREE)`.
+ * @param {string} codeString Source defining `async function createModel(THREE, TEX)`.
+ * @param {{detailLevel?: string}} [options] Drives procedural texture resolution.
  * @returns {Promise<THREE.Object3D>}
- * @throws {Error} With `.isApiError` set when the code names a class that
- *   does not exist, so callers can route it to a repair attempt.
+ * @throws {Error} With `.isApiError` set when the code names a class or texture
+ *   factory that does not exist, so callers can route it to a repair attempt.
  */
-export async function buildModelFromCode(codeString) {
-  const unknown = findUnknownThreeClasses(codeString);
-  if (unknown.length > 0) {
-    const list = unknown.map((name) => `THREE.${name}`).join(', ');
+export async function buildModelFromCode(codeString, options = {}) {
+  const unknownClasses = findUnknownThreeClasses(codeString);
+  const unknownFactories = findUnknownTextureFactories(codeString);
+
+  if (unknownClasses.length > 0 || unknownFactories.length > 0) {
+    const names = [
+      ...unknownClasses.map((name) => `THREE.${name}`),
+      ...unknownFactories.map((name) => `TEX.${name}`),
+    ];
     const error = new Error(
-      `The generated code uses ${list}, which ${unknown.length > 1 ? 'do' : 'does'} not exist in Three.js.`,
+      `The generated code uses ${names.join(', ')}, which ${names.length > 1 ? 'do' : 'does'} not exist.`,
     );
     error.isApiError = true;
-    error.unknownClasses = unknown;
+    error.unknownClasses = unknownClasses;
+    error.unknownFactories = unknownFactories;
     throw error;
   }
 
-  const executable = new AsyncFunction('THREE', `${codeString}\nreturn createModel(THREE);`);
-  const model = await executable(THREE);
+  // TEX arrives as a second argument, so a `createModel(THREE)` written without
+  // it keeps working — JavaScript ignores the surplus argument.
+  const textures = createTextureLibrary(resolutionFor(options.detailLevel));
+  const executable = new AsyncFunction(
+    'THREE',
+    'TEX',
+    `${codeString}\nreturn createModel(THREE, TEX);`,
+  );
+  const model = await executable(THREE, textures);
 
   if (!model || !model.isObject3D) {
     throw new Error('Generated code did not return a valid Three.js object.');

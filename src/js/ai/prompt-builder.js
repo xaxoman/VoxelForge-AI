@@ -70,7 +70,7 @@ ${material}
 
 MANDATORY RULES:
 1. Define and return ONLY this async function:
-   async function createModel(THREE) {
+   async function createModel(THREE, TEX) {
        const group = new THREE.Group();
        group.name = "Root_Model";
        // construct 3D model with named meshes, geometries, and materials
@@ -81,6 +81,32 @@ MANDATORY RULES:
 4. Center the model at (0, 0, 0) with height scaled between 1.5 and 4 units.
 5. If an image is provided, accurately copy its silhouette, proportions, colors, sub-components, and materials!
 6. Return PURE JavaScript code only inside \`\`\`javascript ... \`\`\` or raw code without markdown explanation.
+
+PROCEDURAL TEXTURES:
+createModel receives a second argument, TEX, holding canvas-texture factories.
+Each returns a ready THREE.CanvasTexture — assign it to material.map (or any
+map slot). Prefer a texture over modelled geometry for flat surface detail:
+a racing number is one textured quad, not extruded letterforms.
+
+  TEX.carbonFiber({ color, highlight, weave, repeat })
+  TEX.racingNumber({ text, color, background, outline, roundel })
+  TEX.stripes({ colors, count, angle, thickness, background })
+  TEX.rust({ base, rust, amount, seed, repeat })
+  TEX.gauge({ label, ticks, value, face, accent, needle })
+  TEX.licensePlate({ text, background, color, border })
+  TEX.panelLines({ base, line, cells, rivets, repeat })
+
+Use them ONLY where the subject calls for it — racing livery, weathered metal,
+cockpit instruments, hull plating. Do not texture a surface that should be
+plain paint. These are the only TEX functions that exist; do not invent others.
+
+Example:
+  const decal = new THREE.MeshStandardMaterial({
+    map: TEX.racingNumber({ text: '07', background: '#1d4ed8' }),
+    metalness: 0.4, roughness: 0.35,
+  });
+  const door = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.2), decal);
+  door.name = 'Door_Decal_Left';
 
 GEOMETRY ALLOWLIST — these are the ONLY geometry constructors that exist:
 ${ALLOWED_GEOMETRIES.join(', ')}
