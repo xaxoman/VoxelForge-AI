@@ -286,6 +286,53 @@ produced with ExtrudeGeometry or LatheGeometry over a THREE.Shape.
 }
 
 /**
+ * Stands in for a revision the thread has moved past.
+ *
+ * Sent in place of superseded source so the conversation keeps its shape —
+ * every request answered by a reply — without carrying a copy of the model for
+ * each edit ever made.
+ */
+export const SUPERSEDED_REVISION =
+  '(Earlier revision, replaced by the one below. Its source is omitted; the most recent code is the one to edit.)';
+
+/**
+ * Builds a refinement turn: a change to the model already on stage, rather
+ * than a fresh request.
+ *
+ * The rules exist because the two ways this goes wrong are both silent. A model
+ * asked to edit its own code likes to answer with a fragment — an excerpt plus
+ * `// ...rest unchanged` — which deletes the rest of the model, since the reply
+ * replaces the scene wholesale. And a model asked for one change often takes
+ * the opportunity to rebuild everything, so the user gets their new exhausts
+ * along with a car they no longer recognise.
+ *
+ * @param {string} instruction What the user asked for, verbatim.
+ */
+export function buildEditPrompt(instruction) {
+  return `REFINEMENT — change the model you just built. Do not start over.
+
+REQUESTED CHANGE:
+"${instruction}"
+
+Rules for this turn:
+1. Begin from the createModel you last returned. Everything the request does not
+   mention comes back untouched: same mesh names, same geometry parameters, same
+   positions, same materials, same textures.
+2. Return the COMPLETE createModel function. Never abbreviate — no "// unchanged",
+   no excerpts, no diffs. Your reply replaces the whole model, so any part you
+   leave out is deleted from it.
+3. To remove something, delete its mesh and anything that existed only to serve
+   it. Do not hide it, scale it to zero, or move it out of frame.
+4. Something added takes the place of what it replaced: same mounting point,
+   same scale relationship to its neighbours, so the silhouette still reads as
+   one designed object.
+5. Keep the overall scale and centring unless the change itself requires
+   otherwise, and keep honouring any reference views from earlier in this
+   conversation.
+6. Return only the JavaScript, under the same rules as the original request.`;
+}
+
+/**
  * Builds the follow-up turn asking the model to fix code that failed.
  *
  * The failing source and the exact error go back verbatim: a model correcting

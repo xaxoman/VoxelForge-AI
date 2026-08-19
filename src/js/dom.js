@@ -31,6 +31,12 @@ export const dom = {
   referenceGrid: byId('reference-grid'),
   referenceStatus: byId('reference-status'),
 
+  // Iterative edit
+  refineInput: byId('refine-input'),
+  refineBtn: byId('refine-btn'),
+  editLog: byId('edit-log'),
+  refineStatus: byId('refine-status'),
+
   // Actions
   generateBtn: byId('generate-btn'),
   generateBtnLabel: byId('generate-btn-label'),

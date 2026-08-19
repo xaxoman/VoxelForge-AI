@@ -187,7 +187,9 @@ option {
   border-color: var(--danger);
 }
 
-.reference-status {
+/* Small explanatory line under a control, shared by the reference views and the
+   refine box. */
+.field-note {
   margin-top: var(--space-2);
   font-size: 0.6875rem;
   line-height: 1.4;
@@ -372,6 +374,47 @@ button.active-toggle:hover {
 .chip:hover {
   color: var(--text);
   border-color: var(--border-strong);
+}
+
+/* --- Iterative edit ---
+   The refine box is inert until a model exists, so it needs a disabled state
+   the buttons already had. */
+
+input:disabled,
+textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input:disabled:hover,
+textarea:disabled:hover {
+  border-color: var(--border);
+}
+
+/* Applied refinements, numbered in the order the model received them. */
+.edit-log {
+  list-style: none;
+  counter-reset: edit;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-3);
+}
+
+.edit-log li {
+  counter-increment: edit;
+  display: flex;
+  gap: var(--space-2);
+  font-size: 0.6875rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.edit-log li::before {
+  content: counter(edit);
+  font-family: var(--font-mono);
+  color: var(--text-subtle);
+  flex-shrink: 0;
 }
 
 /* --- Inspector --- */

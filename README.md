@@ -13,7 +13,7 @@
 
 **HyperMesh 3D Studio** is a serverless, client-side generative 3D web application that turns plain text prompts and 2D reference images into fully articulated, physically-based Three.js 3D models in seconds.
 
-Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to procedurally synthesize structured, editable, and hierarchically organized Three.js scene graphs. Models are rendered with real-time ACES Filmic PBR lighting and can be exported immediately into industry-standard formats (**`.GLB`**, **`.GLTF`**, **`.OBJ`**, **`.STL`**) ready for direct drag-and-drop into **Godot**, **Unity**, **Blender**, or **3D printing slicers**.
+Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to procedurally synthesize structured, editable, and hierarchically organized Three.js scene graphs. Because the output is code rather than an opaque mesh, a model can be refined in conversation — *"swap the spoiler for dual thrusters"* — instead of regenerated from scratch. Models are rendered with real-time ACES Filmic PBR lighting and can be exported immediately into industry-standard formats (**`.GLB`**, **`.GLTF`**, **`.OBJ`**, **`.STL`**) ready for direct drag-and-drop into **Godot**, **Unity**, **Blender**, or **3D printing slicers**.
 
 ---
 
@@ -27,7 +27,7 @@ Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to pr
 │   │   Multimodal Input  │                 │    Three.js Viewport   │   │
 │   │ ├── Text Prompt     │                 │ ├── ACESFilmic Tone    │   │
 │   │ ├── 2-3 Ortho Views │                 │ ├── Dynamic Studio PBR │   │
-│   │ └── Clipboard Paste │                 │ ├── Soft Shadow Maps   │   │
+│   │ └── Refine / Edit   │                 │ ├── Soft Shadow Maps   │   │
 │   └──────────┬──────────┘                 │ └── Turntable Controls │   │
 │              │                            └───────────▲────────────┘   │
 │              ▼                                        │                │
@@ -61,30 +61,35 @@ Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to pr
 * **Client-Side Image Rescaling**: Auto-optimizes reference images using an offscreen canvas to keep payloads light and API round-trips fast.
 * **Vision Topology Decomposition**: Gemini deconstructs 2D images into silhouette, symmetry, sub-parts, and colors.
 
-### 2. High-Fidelity Geometry & Spatial Modeling
+### 2. Conversational Iterative Edit
+* **Refine Box**: A second prompt that changes the model already on stage — *"replace the rear spoiler with dual exhaust thrusters"* — instead of starting a new one. See [Iterative edit mode](#-iterative-edit-mode).
+* **Real Multi-Turn Thread**: Each refinement is the next turn of the same conversation, so *"make that a bit wider"* resolves against the previous edit the way a person would read it.
+* **Bounded Context**: Only the newest revision carries its source; superseded ones collapse to a one-line notice, so a long edit session does not re-upload the whole model every turn.
+
+### 3. High-Fidelity Geometry & Spatial Modeling
 * **Detail Level Presets**:
   * **Ultra (Micro-parts)**: Generates complex composite shapes, chamfers, wheel hubs, exhausts, cockpit glass, and spoiler struts (tested up to ~20,000+ triangles).
   * **High (Curved & Smooth)**: Subdivided cylindrical approximations and angled multi-part panels.
   * **Standard Low-Poly**: Clean, minimalist geometry for retro/stylized games.
 * **Camera Auto-Framing**: Dynamically computes 3D bounding boxes and bounding spheres to re-center and frame models on generation.
 
-### 3. PBR Physical Material Engine
+### 4. PBR Physical Material Engine
 * **Material Finish Presets**:
   * **Realistic PBR**: Metallic painted shells (`metalness: 0.85`, `roughness: 0.15`), matte rubber tires (`roughness: 0.95`), chrome accents, and transparent glass.
   * **Cyberpunk Glow**: High-contrast dark metals paired with high-intensity emissive neon channels.
   * **Stylized Matte**: Low-metalness, saturated diffuse clay aesthetic.
 
-### 4. Game-Engine Ready Hierarchy
+### 5. Game-Engine Ready Hierarchy
 * Every generated component is assigned a semantic identifier (`Chassis`, `Wheel_Front_Left`, `Cockpit_Glass`, `Spoiler`, `Headlight_Left`).
 * Preserves named node trees upon `.glb` import into Godot and Unity for immediate rigging and animation (unless draw call merging is enabled — see [Draw call optimization](#-draw-call-optimization)).
 
-### 5. Multi-Format 3D Exporter Dropdown
+### 6. Multi-Format 3D Exporter Dropdown
 * 📦 **`.GLB` (Binary)**: Self-contained binary bundle with meshes, hierarchy, and embedded materials (Best for Godot & Unity).
 * 📄 **`.GLTF` (JSON)**: Open scene description format for inspection and web apps.
 * 📐 **`.OBJ` (Wavefront)**: Universal geometry file compatible with Blender, Maya, and 3ds Max.
 * 🖨️ **`.STL` (Stereolithography)**: Binary mesh export ready for 3D printing slicers (Cura, PrusaSlicer).
 
-### 6. Resilience & Developer Experience
+### 7. Resilience & Developer Experience
 * **Self-Repairing Generation**: Generated code is checked against the real Three.js namespace before it runs. If the model invents a class that doesn't exist (`THREE.PrismGeometry` and friends), the exact diagnostic is sent back for a corrective pass — up to `MAX_REPAIR_ATTEMPTS` times — so a hallucinated API costs a few seconds instead of a failed generation. The system prompt also carries an explicit allowlist of the 20 geometry constructors that actually exist.
 * **Auto-Failover Circuit**: Automatically detects `503 High Demand` or `429 Rate Limit` errors and cascades down to available models (`3.6-flash` $\rightarrow$ `3.5-flash` $\rightarrow$ `3.7-flash`). The model select moves to whichever model answered, so a silent failover is still visible.
 * **Live Generation Stopwatch**: Real-time timer tracking elapsed seconds during generation and displaying total build time.
@@ -181,6 +186,7 @@ it then applies to every model you import.
 - [ ] **LOD (Level of Detail) Generator**: Export multi-tier LODs (`LOD0` full detail, `LOD1` medium proxy, `LOD2` low poly) in a single container.
 
 ### Phase 3: In-App Interactive 3D Editor
+- [x] **Conversational Iterative Edit** — ships as the **Refine** box: refinements run as further turns of the same Gemini conversation, against the model already on stage. See [Iterative edit mode](#-iterative-edit-mode).
 - [x] **Raycast Click-to-Select** — see [Inspector & material editor](#-inspector--material-editor).
 - [x] **Live Color & PBR Tweak Gizmo** — see [Inspector & material editor](#-inspector--material-editor).
 - [x] **TransformControls** — see [Inspector & material editor](#-inspector--material-editor).
@@ -234,6 +240,7 @@ declared in `index.html`.
         ├── ai/
         │   ├── prompt-builder.js # Detail/material instruction blocks → system prompt
         │   ├── gemini-client.js  # generateContent + auto-failover circuit
+        │   ├── conversation.js   # The edit thread: turns, revisions, frozen settings
         │   └── model-compiler.js # Evaluates returned code into a Three.js object
         ├── export/
         │   ├── model-exporter.js # .GLB / .GLTF / .OBJ / .STL exporters
@@ -242,6 +249,7 @@ declared in `index.html`.
         └── ui/
             ├── api-key.js        # Key persistence + status indicator
             ├── image-input.js    # Dropzone, paste, multi-view slots, client-side rescaling
+            ├── refine.js         # Refine box, applied-edit log, thread state
             ├── export-menu.js    # Export dropdown behavior
             ├── inspector.js      # Selection inspector + material editor
             ├── theme.js          # Light/dark switching + persistence
@@ -274,6 +282,7 @@ app means editing that one file.
 | :-------------------------------------- | :---------------------------------- |
 | Add or reorder fallback models           | `src/js/config.js`                  |
 | Change how Gemini is instructed          | `src/js/ai/prompt-builder.js`       |
+| Change what an edit turn may touch       | `src/js/ai/prompt-builder.js` (`buildEditPrompt`) + `conversation.js` |
 | Add a new export format                  | `src/js/export/model-exporter.js`   |
 | Change the inspector's controls          | `src/js/ui/inspector.js`            |
 | Add or tune a procedural texture         | `src/js/textures/procedural.js`     |
@@ -415,6 +424,93 @@ not two.
   full-resolution photo.
 * The repair pass keeps all views attached, so a correction stays matched to
   every reference rather than drifting back to the first one.
+
+---
+
+## 🔁 Iterative Edit Mode
+
+Regenerating to change one part is a bad trade: the same prompt run twice gives
+two different cars, so fixing the spoiler costs you the bodywork you liked.
+
+The **Refine** box changes the model already on stage. It is the second turn of
+the same conversation, not a new request:
+
+> *"Keep the car exactly as it is, but replace the rear spoiler with dual
+> exhaust thrusters."*
+
+> *"Change the color scheme from blue/yellow to stealth matte black with crimson
+> neon trim."*
+
+`Ctrl`/`Cmd`+`Enter` applies without reaching for the button. Applied edits stay
+listed under the box, in the order the model received them.
+
+### It is an actual conversation
+
+Each refinement is appended to a running thread and the whole thread is sent:
+
+```text
+user   → a hover car        + reference views
+model  → (revision 1 source)
+user   → replace the rear spoiler with dual exhaust thrusters
+model  → (revision 2 source)
+user   → stealth matte black with crimson neon trim      ← this turn
+```
+
+Which is why *"make that a bit wider"* works — "that" is the thing the previous
+turn added. A tool that only sent the latest code plus your sentence would have
+nothing to resolve "that" against.
+
+### Only the newest revision carries its source
+
+Superseded revisions collapse to a one-line notice:
+
+```text
+model  → (Earlier revision, replaced by the one below. Its source is omitted;
+          the most recent code is the one to edit.)
+```
+
+An edit session that kept every revision would re-upload the entire model on
+every turn, and the old copies say nothing the current one does not. The
+*instructions* between them are what carry intent, and those are a sentence
+each — so the thread stays conversational while the payload stays roughly flat
+no matter how many edits you make.
+
+### What the edit turn is told
+
+Two failure modes are both silent, so both are ruled out explicitly:
+
+* **Answering with a fragment.** Models asked to edit their own code like to
+  reply with an excerpt and `// ...rest unchanged`. The reply replaces the whole
+  model, so anything omitted is deleted. The prompt forbids diffs, excerpts and
+  abbreviations, and asks for the complete `createModel`.
+* **Rebuilding everything.** Asked for one change, a model will happily redesign
+  the rest. The prompt pins everything the request does not mention — mesh
+  names, geometry parameters, positions, materials, textures — and requires a
+  removed part to actually be deleted rather than hidden or scaled to zero.
+
+### Notes
+
+* **Fidelity, finish and the reference views freeze when the thread opens.**
+  Changing the Detail select mid-thread would tell the model to rebuild
+  everything at the same moment the edit prompt tells it to change one part.
+  Those selects apply to the *next* fresh generation; the reference views stay
+  attached to the thread that was generated from them.
+* **Generating again starts a new thread** and clears the edit log — the old
+  edits described a different object.
+* **A failed edit changes nothing.** The thread is only appended to after code
+  has actually built, so a refusal or a bad build leaves the model on stage, the
+  log, and your typed instruction exactly where they were — retry without
+  retyping.
+* **The self-repair pass is invisible to the thread.** If a revision fails to
+  build and a corrective round fixes it, what gets recorded is your request and
+  the code that worked — never the broken attempt or the repair turn.
+* **Inspector tweaks do not survive an edit.** Material changes made by hand
+  live on the mounted object, and a refinement replaces it. Refine first, then
+  tune by hand.
+* **Undo is not a first-class action.** "Put the spoiler back" usually works —
+  the model has the full instruction history — but it is reconstructing, not
+  reverting. Regenerate if a thread has gone somewhere you cannot talk it back
+  from.
 
 ---
 
@@ -738,4 +834,5 @@ Then:
 2. Paste your [Google AI Studio API Key](https://aistudio.google.com/app/apikey) — it is stored in `localStorage`, never sent anywhere but Google's API.
 3. Type a prompt, or attach reference views (`Ctrl+V`, drag-and-drop, or click) —
    two or three angles of the same object gives the most accurate result.
-4. Click the generate button and export your asset!
+4. Click the generate button, then refine it in place from the **Refine** box —
+   *"swap the spoiler for dual thrusters"* — and export your asset!
