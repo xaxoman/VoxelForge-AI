@@ -4,7 +4,7 @@ import {
   FALLBACK_MODELS,
   RETRYABLE_STATUSES,
 } from '../config.js';
-import { buildSystemPrompt, buildUserPrompt } from './prompt-builder.js';
+import { buildSystemPrompt, buildUserPrompt, buildRepairPrompt } from './prompt-builder.js';
 
 /** Strips markdown fences Gemini sometimes wraps around the code block. */
 function stripCodeFences(text) {
@@ -87,6 +87,8 @@ async function callWithFailover({ model, apiKey, payload, onStatus }) {
  * @param {string} options.detailLevel
  * @param {string} options.materialStyle
  * @param {(status: string) => void} [options.onStatus]
+ * @param {{code: string, error: string}|null} [options.previousAttempt]
+ *   When set, asks the model to correct that code instead of starting over.
  * @returns {Promise<{code: string, model: string}>}
  */
 export async function generateModelCode({
@@ -97,14 +99,21 @@ export async function generateModelCode({
   detailLevel,
   materialStyle,
   onStatus,
+  previousAttempt,
 }) {
   const userParts = [];
 
+  // A repair turn carries the failing source and error instead of the original
+  // request; the reference image stays attached so the fix keeps matching it.
   if (image?.base64 && image?.mimeType) {
     userParts.push({ inlineData: { mimeType: image.mimeType, data: image.base64 } });
   }
 
-  userParts.push({ text: buildUserPrompt(prompt, Boolean(image?.base64)) });
+  userParts.push({
+    text: previousAttempt
+      ? buildRepairPrompt(previousAttempt.code, previousAttempt.error)
+      : buildUserPrompt(prompt, Boolean(image?.base64)),
+  });
 
   const payload = {
     systemInstruction: { parts: [{ text: buildSystemPrompt(detailLevel, materialStyle) }] },

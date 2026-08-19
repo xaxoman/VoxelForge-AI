@@ -6,7 +6,12 @@
  * (export/) together.
  */
 
-import { GENERATE_LABELS, SAMPLE_PROMPTS, DEFAULT_ENVIRONMENT } from './config.js';
+import {
+  GENERATE_LABELS,
+  SAMPLE_PROMPTS,
+  DEFAULT_ENVIRONMENT,
+  MAX_REPAIR_ATTEMPTS,
+} from './config.js';
 import { dom } from './dom.js';
 import { Viewport } from './viewer/viewport.js';
 import { generateModelCode } from './ai/gemini-client.js';
@@ -64,6 +69,46 @@ function setBusy(isBusy, status = '') {
   if (status) dom.loadingText.textContent = status;
 }
 
+/**
+ * Generates a model, and if the returned code fails to build, sends the error
+ * back for correction rather than surfacing it.
+ *
+ * Models occasionally emit Three.js APIs that do not exist (`THREE.PrismGeometry`
+ * and friends). Handing the exact diagnostic back recovers almost all of those,
+ * so a hallucinated class costs a few extra seconds instead of a dead end.
+ *
+ * @returns {Promise<{object: object, model: string}>}
+ */
+async function generateWithRepair(request) {
+  let previousAttempt = null;
+  let lastError = null;
+
+  for (let attempt = 0; attempt <= MAX_REPAIR_ATTEMPTS; attempt += 1) {
+    const { code, model } = await generateModelCode({
+      ...request,
+      previousAttempt,
+      onStatus: (status) => { dom.loadingText.textContent = status; },
+    });
+
+    try {
+      dom.loadingText.textContent = 'Assembling 3D scene & calculating normals...';
+      return { object: await buildModelFromCode(code), model };
+    } catch (err) {
+      lastError = err;
+      previousAttempt = { code, error: err.message };
+
+      if (attempt < MAX_REPAIR_ATTEMPTS) {
+        console.warn(`Build attempt ${attempt + 1} failed; asking for a correction.`, err);
+        dom.loadingText.textContent = err.isApiError
+          ? `Invalid API used — requesting a fix (${attempt + 2}/${MAX_REPAIR_ATTEMPTS + 1})…`
+          : `Build failed — requesting a fix (${attempt + 2}/${MAX_REPAIR_ATTEMPTS + 1})…`;
+      }
+    }
+  }
+
+  throw lastError;
+}
+
 /** Prompt -> Gemini -> Three.js code -> mounted model. */
 async function handleGenerate() {
   const key = apiKey.getKey();
@@ -85,20 +130,17 @@ async function handleGenerate() {
   timer.start();
 
   try {
-    const { code, model } = await generateModelCode({
+    const built = await generateWithRepair({
       apiKey: key,
       model: dom.modelSelect.value,
       prompt,
       image,
       detailLevel: dom.detailLevelSelect.value,
       materialStyle: dom.materialStyleSelect.value,
-      onStatus: (status) => { dom.loadingText.textContent = status; },
     });
 
-    setModelBadge(model);
-    dom.loadingText.textContent = 'Assembling 3D scene & calculating normals...';
-
-    viewport.setModel(await buildModelFromCode(code));
+    setModelBadge(built.model);
+    viewport.setModel(built.object);
     refreshStats();
     timer.stop();
   } catch (err) {

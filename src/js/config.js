@@ -13,6 +13,13 @@ export const STORAGE_KEYS = {
 /** Google Generative Language REST endpoint. */
 export const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
+/**
+ * How many times a failed build is sent back to the model for correction.
+ * Models occasionally invent Three.js APIs; one or two corrective passes
+ * recover almost all of those without the user noticing.
+ */
+export const MAX_REPAIR_ATTEMPTS = 2;
+
 /** Sampling temperature used for every generation request. */
 export const GENERATION_TEMPERATURE = 0.6;
 
