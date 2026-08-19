@@ -37,6 +37,40 @@ export const MAX_IMAGE_DIMENSION = 800;
 /** JPEG/PNG quality used when re-encoding a downscaled reference image. */
 export const IMAGE_ENCODE_QUALITY = 0.85;
 
+/**
+ * Poly Haven's CC0 HDRI file CDN. Assets are 1k so a load stays around 1-2 MB.
+ * Swap the resolution segment for 2k/4k if you want sharper reflections at the
+ * cost of download size.
+ */
+export const HDRI_BASE_URL = 'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k';
+
+/**
+ * Environment maps offered in the UI, keyed by the value of #environment-select.
+ *
+ * `studio` is generated procedurally by three.js and needs no network, which is
+ * why it is the default. Entries carrying a `file` are fetched from Poly Haven
+ * on first use and cached for the session.
+ */
+export const ENVIRONMENTS = {
+  none: { label: 'No reflections' },
+  studio: { label: 'Studio softbox' },
+  photo: { label: 'Photo studio', file: 'brown_photostudio_02_1k.hdr' },
+  warehouse: { label: 'Empty warehouse', file: 'empty_warehouse_01_1k.hdr' },
+  sunset: { label: 'Venice sunset', file: 'venice_sunset_1k.hdr' },
+  city: { label: 'City at night', file: 'potsdamer_platz_1k.hdr' },
+};
+
+/** Environment applied on first load. */
+export const DEFAULT_ENVIRONMENT = 'studio';
+
+/**
+ * Intensity multipliers applied to the directional rig when an environment map
+ * is active. Image-based lighting already supplies ambient fill and
+ * reflections, so the lights step back to carving shadows and edges — without
+ * this the scene blows out.
+ */
+export const ENV_LIGHT_SCALE = { ambient: 0.15, key: 0.55, fill: 0.3, rim: 0.6 };
+
 /** Studio lighting presets keyed by the value of the #lighting-preset select. */
 export const LIGHTING_PRESETS = {
   studio: {

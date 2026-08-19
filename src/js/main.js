@@ -6,7 +6,7 @@
  * (export/) together.
  */
 
-import { GENERATE_LABELS, SAMPLE_PROMPTS } from './config.js';
+import { GENERATE_LABELS, SAMPLE_PROMPTS, DEFAULT_ENVIRONMENT } from './config.js';
 import { dom } from './dom.js';
 import { Viewport } from './viewer/viewport.js';
 import { generateModelCode } from './ai/gemini-client.js';
@@ -169,6 +169,33 @@ dom.lightingPresetSelect.addEventListener('change', (event) => {
   viewport.setLightingPreset(event.target.value);
 });
 
+/**
+ * Applies a reflection environment, reporting progress on the shared loading
+ * row. HDRIs are a network fetch, so the control locks until it resolves.
+ */
+async function applyEnvironment(id) {
+  dom.environmentSelect.disabled = true;
+  const wasGenerating = dom.generateBtn.disabled;
+
+  try {
+    const result = await viewport.setEnvironment(id, (status) => {
+      dom.loadingIndicator.style.display = 'flex';
+      dom.loadingText.textContent = status;
+    });
+
+    if (result.fellBack) {
+      dom.environmentSelect.value = result.id;
+      alert(`That environment could not be downloaded, so the built-in studio is being used instead.\n\n${result.error}`);
+    }
+  } finally {
+    dom.environmentSelect.disabled = false;
+    // Don't clear the row out from under an in-flight generation.
+    if (!wasGenerating) dom.loadingIndicator.style.display = 'none';
+  }
+}
+
+dom.environmentSelect.addEventListener('change', (event) => applyEnvironment(event.target.value));
+
 dom.turntableToggle.addEventListener('click', () => {
   dom.turntableToggle.classList.toggle('active-toggle', viewport.toggleAutoRotate());
 });
@@ -185,3 +212,7 @@ initExportMenu({
 });
 
 viewport.start();
+
+// Reflections are on from the first frame; the default needs no network.
+dom.environmentSelect.value = DEFAULT_ENVIRONMENT;
+applyEnvironment(DEFAULT_ENVIRONMENT);

@@ -41,6 +41,7 @@ export const dom = {
 
   // Viewport controls
   lightingPresetSelect: byId('lighting-preset'),
+  environmentSelect: byId('environment-select'),
   turntableToggle: byId('turntable-toggle'),
   wireframeToggle: byId('wireframe-toggle'),
 

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { createScene } from './scene.js';
-import { createLighting, applyLightingPreset } from './lighting.js';
+import { createLighting, applyLightingPreset, setEnvironmentActive } from './lighting.js';
+import { EnvironmentManager } from './environment.js';
 import { countMaterialGroups } from '../export/merge.js';
 
 const TURNTABLE_SPEED = 0.008;
@@ -22,6 +23,7 @@ export class Viewport {
     this.renderer = renderer;
     this.controls = controls;
     this.lights = createLighting(scene);
+    this.environment = new EnvironmentManager(renderer, scene);
 
     this.modelGroup = new THREE.Group();
     this.scene.add(this.modelGroup);
@@ -118,6 +120,19 @@ export class Viewport {
   /** @param {keyof import('../config.js').LIGHTING_PRESETS} presetName */
   setLightingPreset(presetName) {
     applyLightingPreset(this.scene, this.lights, presetName);
+  }
+
+  /**
+   * Swaps the reflection environment and rebalances the directional rig so the
+   * two light sources don't stack into an overexposed scene.
+   *
+   * @param {string} id Key into ENVIRONMENTS.
+   * @param {(status: string) => void} [onStatus]
+   */
+  async setEnvironment(id, onStatus) {
+    const result = await this.environment.apply(id, onStatus);
+    setEnvironmentActive(this.lights, result.id !== 'none');
+    return result;
   }
 
   /**

@@ -255,7 +255,15 @@
         </span>
       </div>
       <div class="btn-row">
-        <select id="lighting-preset" class="inline" aria-label="Lighting preset">
+        <select id="environment-select" class="inline" aria-label="Reflection environment" title="Environment map used for reflections on metal and glass">
+          <option value="none">No reflections</option>
+          <option value="studio" selected>Studio softbox</option>
+          <option value="photo">Photo studio</option>
+          <option value="warehouse">Empty warehouse</option>
+          <option value="sunset">Venice sunset</option>
+          <option value="city">City at night</option>
+        </select>
+        <select id="lighting-preset" class="inline" aria-label="Lighting preset" title="Directional light rig colour">
           <option value="studio">Studio light</option>
           <option value="cyberpunk">Cyberpunk dusk</option>
           <option value="sunlight">Warm sunlight</option>
