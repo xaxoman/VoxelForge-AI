@@ -70,7 +70,7 @@ ${material}
 
 MANDATORY RULES:
 1. Define and return ONLY this async function:
-   async function createModel(THREE, TEX) {
+   async function createModel(THREE, TEX, CSG) {
        const group = new THREE.Group();
        group.name = "Root_Model";
        // construct 3D model with named meshes, geometries, and materials
@@ -107,6 +107,40 @@ Example:
   });
   const door = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.2), decal);
   door.name = 'Door_Decal_Left';
+
+BOOLEAN OPERATIONS (CSG):
+createModel receives a third argument, CSG, for real constructive solid
+geometry. Use it when a shape is defined by what has been REMOVED — cutting is
+far more accurate than arranging primitives around a hole.
+
+  CSG.subtract(base, tool)        base minus tool
+  CSG.union(base, tool)           welds two solids into one
+  CSG.intersect(base, tool)       keeps only the overlapping volume
+  CSG.subtractAll(base, [tools])  subtracts several tools in sequence
+
+All operands are THREE.Mesh objects. Position and rotate them normally BEFORE
+the call; the result comes back at identity with the geometry baked, so add it
+to your group exactly where the base mesh would have gone. The result inherits
+the base mesh's material and name.
+
+Reach for it on: wheel wells cut out of a chassis block, a hollow cockpit
+drilled into a fuselage, vent or barrel holes punched through a cylinder,
+windows cut from a hull.
+
+Example — four wheel wells cut from a solid chassis:
+  const chassis = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.9, 4.4), bodyMat);
+  const wells = [[1.1, 1.5], [-1.1, 1.5], [1.1, -1.5], [-1.1, -1.5]].map(([x, z]) => {
+    const cutter = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 1.2, 24));
+    cutter.rotation.z = Math.PI / 2;
+    cutter.position.set(x, -0.25, z);
+    return cutter;
+  });
+  const body = CSG.subtractAll(chassis, wells);
+  body.name = 'Chassis';
+  group.add(body);
+
+Booleans are not free: keep operands to simple primitives, and do not run them
+over high-density meshes. These are the only CSG functions that exist.
 
 GEOMETRY ALLOWLIST — these are the ONLY geometry constructors that exist:
 ${ALLOWED_GEOMETRIES.join(', ')}

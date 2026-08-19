@@ -46,7 +46,7 @@ Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to pr
 ```
 
 * **Frontend**: Vanilla JavaScript (native ES Modules), HTML5, CSS3 with a token-driven dark UI and an inline SVG icon sprite (zero build tools, zero runtime dependencies).
-* **3D Engine**: Three.js (r160) with `OrbitControls`, `PCFSoftShadowMap`, ACES Filmic Tone Mapping, and `PMREMGenerator` image-based lighting.
+* **3D Engine**: Three.js (r160) with `OrbitControls`, `PCFSoftShadowMap`, ACES Filmic Tone Mapping, `PMREMGenerator` image-based lighting, and `three-bvh-csg` booleans (loaded on demand).
 * **AI Engine**: Google Gemini API (`gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-2.5-flash`, `gemini-2.0-flash`).
 * **Export Pipeline**: `GLTFExporter` (Binary & JSON), `OBJExporter`, `STLExporter`.
 
@@ -169,6 +169,7 @@ it then applies to every model you import.
 
 ### Phase 1: Visual Realism & Shading
 - [x] **HDRI Image-Based Lighting (IBL)** — ships as the **Environment** control, with a procedural studio default and optional Poly Haven CC0 HDRIs. See [Reflections & environment lighting](#-reflections--environment-lighting).
+- [x] **CSG Boolean Operations** — real constructive solid geometry via `three-bvh-csg`, loaded on demand. See [Boolean operations](#-boolean-operations-csg).
 - [x] **Procedural Canvas Texture Baking** — ships as the `TEX` library handed to generated code. See [Procedural textures](#-procedural-textures).
 - [ ] **Post-Processing Pipeline**: Add `EffectComposer` with Unreal-style bloom on glowing emissive parts and subtle ambient occlusion (SSAO).
 
@@ -223,6 +224,8 @@ declared in `index.html`.
         │   ├── lighting.js       # Three-point rig + lighting presets
         │   ├── environment.js    # HDRI / procedural IBL via PMREMGenerator
         │   └── viewport.js       # Render loop, model swapping, framing, stats
+        ├── geometry/
+        │   └── csg.js            # Boolean operations, lazily loaded
         ├── textures/
         │   └── procedural.js     # Canvas texture factories (decals, weaves, gauges)
         ├── ai/
@@ -268,12 +271,78 @@ app means editing that one file.
 | Change how Gemini is instructed          | `src/js/ai/prompt-builder.js`       |
 | Add a new export format                  | `src/js/export/model-exporter.js`   |
 | Add or tune a procedural texture         | `src/js/textures/procedural.js`     |
+| Change the CSG budget or operations       | `src/js/geometry/csg.js` + `config.js` |
 | Change how collision hulls are built     | `src/js/export/collision.js`        |
 | Change how meshes are grouped for merging | `src/js/export/merge.js`           |
 | Tweak lights or add a lighting preset    | `src/js/config.js` + `src/js/viewer/lighting.js` |
 | Add an HDRI or change its resolution     | `src/js/config.js` (`ENVIRONMENTS`, `HDRI_BASE_URL`) |
 | Adjust colors and spacing                | `src/styles/variables.css`          |
 | Add a new UI control                     | `index.html` + `src/js/dom.js` + `src/js/main.js` |
+
+---
+
+## ✂️ Boolean Operations (CSG)
+
+Some shapes are defined by what has been **removed**. Approximating a wheel arch
+by arranging primitives around the gap is fiddly and wrong at the seams; cutting
+it states the intent directly.
+
+Generated code receives a `CSG` helper as a third argument:
+
+| Call | Does |
+| :--- | :--- |
+| `CSG.subtract(base, tool)` | base minus tool |
+| `CSG.union(base, tool)` | welds two solids into one |
+| `CSG.intersect(base, tool)` | keeps only the overlapping volume |
+| `CSG.subtractAll(base, [tools])` | subtracts several tools in sequence |
+
+```js
+// Four wheel wells cut out of a solid chassis block
+const chassis = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.9, 4.4), bodyMat);
+const wells = [[1.1, 1.5], [-1.1, 1.5], [1.1, -1.5], [-1.1, -1.5]].map(([x, z]) => {
+  const cutter = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 1.2, 24));
+  cutter.rotation.z = Math.PI / 2;
+  cutter.position.set(x, -0.25, z);
+  return cutter;
+});
+const body = CSG.subtractAll(chassis, wells);
+body.name = 'Chassis';
+```
+
+Operands are ordinary `THREE.Mesh` objects, positioned and rotated before the
+call. The result comes back at identity with its geometry baked, inheriting the
+base mesh's **material and name** — so it drops into the group exactly where the
+base mesh would have gone, and the exported node tree keeps its semantics.
+
+### Loaded only when used
+
+`three-bvh-csg` plus its `three-mesh-bvh` dependency is **~360 KB**. It is
+imported on demand — the generated code is scanned for a `CSG.` reference, and
+the library is fetched only if one is present. A model that never uses booleans
+downloads nothing extra, and exports are byte-for-byte unchanged.
+
+### Cost and limits
+
+Booleans run on the main thread and are not cheap:
+
+* A single operation is capped at **50,000 combined input triangles**
+  (`MAX_CSG_TRIANGLES`). Over that it refuses with a clear message rather than
+  locking the tab for seconds, and the repair pass can simplify instead.
+* Boolean output is denser than its inputs — cutting a cylinder through a
+  12-triangle box yields ~280 triangles. Keep operands to simple primitives.
+* Non-indexed geometry (e.g. `ExtrudeGeometry`) is indexed automatically before
+  the operation, since the BVH requires it.
+* Shapes that do not overlap return the base unchanged; a subtraction that
+  removes everything reports empty geometry rather than returning a void mesh.
+* Invented operation names are caught by the same validator that guards THREE
+  classes and texture factories, and routed to the same repair pass.
+
+### Version pinning
+
+`three-bvh-csg@0.0.17` is pinned deliberately. Version `0.0.18` raised its peer
+requirement to `three >= 0.179`, which would force a three upgrade across the
+whole app; `0.0.17` supports `three >= 0.151` and was verified against the
+pinned r160.
 
 ---
 
