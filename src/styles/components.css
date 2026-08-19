@@ -1,0 +1,294 @@
+/* Reusable UI widgets: badges, form controls, buttons, dropzone, export menu. */
+
+.badge {
+  background: rgba(66, 133, 244, 0.2);
+  border: 1px solid #4285f4;
+  color: #93c5fd;
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* --- Form controls --- */
+
+input, textarea, select {
+  background: rgba(11, 15, 25, 0.85);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--border-focus);
+}
+
+textarea {
+  resize: none;
+  height: 52px;
+}
+
+select.inline {
+  width: auto;
+  padding: 6px 8px;
+  font-size: 0.78rem;
+}
+
+/* --- Image reference dropzone --- */
+
+.image-dropzone {
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+  background: rgba(11, 15, 25, 0.5);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.image-dropzone:hover, .image-dropzone.dragover {
+  border-color: var(--accent);
+  background: rgba(66, 133, 244, 0.08);
+}
+
+.dropzone-text {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.dropzone-text span.icon {
+  font-size: 1.2rem;
+}
+
+.dropzone-text b {
+  color: var(--text);
+}
+
+#file-input {
+  display: none;
+}
+
+.image-preview-container {
+  display: none;
+  position: relative;
+  width: 100%;
+  height: 110px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid var(--border);
+}
+
+.image-preview-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.remove-image-btn:hover {
+  background: var(--error);
+}
+
+/* --- Buttons --- */
+
+button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: transform 0.1s, opacity 0.2s;
+}
+
+button:hover {
+  opacity: 0.92;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.grow {
+  flex: 1;
+}
+
+button.gemini-btn {
+  background: var(--accent-gemini);
+}
+
+button.secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+button.secondary.active-toggle {
+  background: rgba(66, 133, 244, 0.3);
+  border: 1px solid var(--accent);
+  color: #fff;
+}
+
+/* --- Export dropdown --- */
+
+.export-dropdown-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+button.export-main-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.export-menu {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  background: rgba(18, 24, 38, 0.96);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px;
+  min-width: 190px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  z-index: 100;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.export-menu.show {
+  display: flex;
+}
+
+.export-option {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  text-align: left;
+  justify-content: flex-start;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.export-option:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #38bdf8;
+}
+
+/* --- Prompt chips --- */
+
+.chips-container {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.chip {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 3px 8px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.chip:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--text);
+}
+
+/* --- Status readouts --- */
+
+.model-info {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.timer-badge {
+  color: #93c5fd;
+  font-weight: 600;
+}
+
+#loading-indicator {
+  display: none;
+  font-size: 0.8rem;
+  color: #93c5fd;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.spinner {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top: 2px solid #4285f4;
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  animation: spin 0.8s linear infinite;
+}
+
+.key-status {
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--error);
+}
+
+.status-dot.active {
+  background: var(--success);
+}

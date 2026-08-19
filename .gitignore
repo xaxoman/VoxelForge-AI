@@ -1,0 +1,13 @@
+# Dependencies (the app itself is dependency-free; this is only for tooling)
+node_modules/
+
+# Editor & OS noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+npm-debug.log*
