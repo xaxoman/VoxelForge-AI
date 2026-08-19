@@ -46,7 +46,7 @@ Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to pr
 ```
 
 * **Frontend**: Vanilla JavaScript (native ES Modules), HTML5, CSS3 with a token-driven dark UI and an inline SVG icon sprite (zero build tools, zero runtime dependencies).
-* **3D Engine**: Three.js (r160) with `OrbitControls`, `PCFSoftShadowMap`, and ACES Filmic Tone Mapping.
+* **3D Engine**: Three.js (r160) with `OrbitControls`, `PCFSoftShadowMap`, ACES Filmic Tone Mapping, and `PMREMGenerator` image-based lighting.
 * **AI Engine**: Google Gemini API (`gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-2.5-flash`, `gemini-2.0-flash`).
 * **Export Pipeline**: `GLTFExporter` (Binary & JSON), `OBJExporter`, `STLExporter`.
 
@@ -167,7 +167,7 @@ it then applies to every model you import.
 ## 🗺️ Product Roadmap & Production-Grade Suggestions
 
 ### Phase 1: Visual Realism & Shading
-- [ ] **HDRI Image-Based Lighting (IBL)**: Integrate `RGBELoader` with Poly Haven CC0 studio HDRIs for realistic environment reflections on metals and glass.
+- [x] **HDRI Image-Based Lighting (IBL)** — ships as the **Environment** control, with a procedural studio default and optional Poly Haven CC0 HDRIs. See [Reflections & environment lighting](#-reflections--environment-lighting).
 - [ ] **Procedural Canvas Texture Baking**: Generate dynamic 2D canvas textures (racing stripes, decals, carbon fiber weaves, license plates) mapped to UV coordinates.
 - [ ] **Post-Processing Pipeline**: Add `EffectComposer` with Unreal-style bloom on glowing emissive parts and subtle ambient occlusion (SSAO).
 
@@ -220,6 +220,7 @@ declared in `index.html`.
         ├── viewer/
         │   ├── scene.js          # Scene, camera, renderer, controls, grid, floor
         │   ├── lighting.js       # Three-point rig + lighting presets
+        │   ├── environment.js    # HDRI / procedural IBL via PMREMGenerator
         │   └── viewport.js       # Render loop, model swapping, framing, stats
         ├── ai/
         │   ├── prompt-builder.js # Detail/material instruction blocks → system prompt
@@ -266,8 +267,75 @@ app means editing that one file.
 | Change how collision hulls are built     | `src/js/export/collision.js`        |
 | Change how meshes are grouped for merging | `src/js/export/merge.js`           |
 | Tweak lights or add a lighting preset    | `src/js/config.js` + `src/js/viewer/lighting.js` |
+| Add an HDRI or change its resolution     | `src/js/config.js` (`ENVIRONMENTS`, `HDRI_BASE_URL`) |
 | Adjust colors and spacing                | `src/styles/variables.css`          |
 | Add a new UI control                     | `index.html` + `src/js/dom.js` + `src/js/main.js` |
+
+---
+
+## 🪞 Reflections & Environment Lighting
+
+Directional lights alone leave metal looking flat. A high-metalness surface has
+almost no diffuse response, so with nothing to reflect it renders **near black**
+except where a light hits it dead on — a chrome sphere lit only by the
+directional rig measures a mean brightness of `2.9/255`. Give it an environment
+to mirror and the same sphere measures `57`.
+
+The **Environment** control (bottom bar) sets the reflection source:
+
+| Option | Source | Network |
+| :--- | :--- | :--- |
+| No reflections | — | none |
+| **Studio softbox** *(default)* | three.js `RoomEnvironment`, generated procedurally | **none** |
+| Photo studio | Poly Haven `brown_photostudio_02` | ~1–2 MB |
+| Empty warehouse | Poly Haven `empty_warehouse_01` | ~1–2 MB |
+| Venice sunset | Poly Haven `venice_sunset` | ~1–2 MB |
+| City at night | Poly Haven `potsdamer_platz` | ~1–2 MB |
+
+Every map is prefiltered through `PMREMGenerator`, which converts an
+equirectangular image into the roughness-aware mip chain `MeshStandardMaterial`
+samples — that is what makes a rough surface blur its reflection while a
+polished one stays sharp.
+
+### Why the default is procedural
+
+`RoomEnvironment` needs no network request, so reflections work on first paint,
+offline, and behind a restrictive firewall. HDRIs are fetched only when you pick
+one, and are cached for the rest of the session.
+
+**A failed HDRI download is not fatal** — it falls back to the built-in studio
+and tells you, rather than leaving the viewport broken.
+
+### The lights step back automatically
+
+An environment map supplies ambient fill as well as reflections, so leaving the
+directional rig at full strength would double-light the scene into a white
+blowout. When an environment is active the rig is scaled down
+(`ENV_LIGHT_SCALE` in `config.js`) to what it is still needed for: shadows and
+edge separation.
+
+```text
+                 ambient   key
+lights only         0.90   1.80
+with environment    0.14   0.99
+```
+
+Lighting presets and environment compensation feed the same intensities, so
+switching preset while an environment is active will not undo the balance.
+
+### Notes
+
+* **Reflections are a viewport preview and are not exported.** glTF has no
+  widely-supported way to carry an IBL environment, so Godot and Unity use
+  their own sky/environment settings. What exports is the geometry and PBR
+  material values, which is what those engines need.
+* The viewport background stays the flat neutral grey rather than showing the
+  HDRI as a skybox — a bright skybox would wreck contrast against the UI. The
+  map is used for `scene.environment` only.
+* HDRIs are 1k (~1–2 MB). Change the resolution segment of `HDRI_BASE_URL` in
+  `config.js` for sharper reflections at a larger download.
+* Poly Haven assets are CC0, so exported renders carry no attribution
+  requirement.
 
 ---
 
