@@ -22,8 +22,9 @@ import { initImageInput } from './ui/image-input.js';
 import { initExportMenu } from './ui/export-menu.js';
 import { createTimer } from './ui/timer.js';
 import { initInspector } from './ui/inspector.js';
+import { initTheme, storedTheme } from './ui/theme.js';
 
-const viewport = new Viewport(dom.canvasContainer);
+const viewport = new Viewport(dom.canvasContainer, storedTheme());
 const timer = createTimer(dom.timerDisplay);
 const apiKey = initApiKeyField({
   input: dom.apiKeyInput,
@@ -41,9 +42,16 @@ const imageInput = initImageInput({
   },
 });
 
-/** Shows the model that actually answered (may differ after a failover). */
-function setModelBadge(model) {
-  dom.activeModelBadge.textContent = model.replace('gemini-', '');
+/**
+ * Reflects the model that actually answered. The failover circuit can cascade
+ * past the chosen model, so the select is moved to match rather than leaving it
+ * claiming a model that never responded.
+ */
+function syncSelectedModel(model) {
+  if (dom.modelSelect.value === model) return;
+
+  const known = [...dom.modelSelect.options].some((option) => option.value === model);
+  if (known) dom.modelSelect.value = model;
 }
 
 /** True when the user has asked for merged output. */
@@ -141,7 +149,7 @@ async function handleGenerate() {
       materialStyle: dom.materialStyleSelect.value,
     });
 
-    setModelBadge(built.model);
+    syncSelectedModel(built.model);
     viewport.setModel(built.object);
     refreshStats();
     timer.stop();
@@ -196,8 +204,6 @@ async function handleExport(format) {
 // --- Event wiring ---
 
 dom.generateBtn.addEventListener('click', handleGenerate);
-
-dom.modelSelect.addEventListener('change', (event) => setModelBadge(event.target.value));
 
 dom.randomBtn.addEventListener('click', () => {
   const index = Math.floor(Math.random() * SAMPLE_PROMPTS.length);
@@ -258,6 +264,11 @@ initExportMenu({
   menu: dom.exportMenu,
   options: dom.exportOptions(),
   onSelect: handleExport,
+});
+
+initTheme({
+  toggle: dom.themeToggle,
+  onChange: (theme) => viewport.setTheme(theme),
 });
 
 // Editing a part can change what the draw-call figure should read.

@@ -47,7 +47,7 @@ Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to pr
 
 * **Frontend**: Vanilla JavaScript (native ES Modules), HTML5, CSS3 with a token-driven dark UI and an inline SVG icon sprite (zero build tools, zero runtime dependencies).
 * **3D Engine**: Three.js (r160) with `OrbitControls`, `PCFSoftShadowMap`, ACES Filmic Tone Mapping, `PMREMGenerator` image-based lighting, and `three-bvh-csg` booleans (loaded on demand).
-* **AI Engine**: Google Gemini API (`gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-2.5-flash`, `gemini-2.0-flash`).
+* **AI Engine**: Google Gemini API (`gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.7-flash`).
 * **Export Pipeline**: `GLTFExporter` (Binary & JSON), `OBJExporter`, `STLExporter`.
 
 ---
@@ -85,7 +85,7 @@ Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to pr
 
 ### 6. Resilience & Developer Experience
 * **Self-Repairing Generation**: Generated code is checked against the real Three.js namespace before it runs. If the model invents a class that doesn't exist (`THREE.PrismGeometry` and friends), the exact diagnostic is sent back for a corrective pass — up to `MAX_REPAIR_ATTEMPTS` times — so a hallucinated API costs a few seconds instead of a failed generation. The system prompt also carries an explicit allowlist of the 20 geometry constructors that actually exist.
-* **Auto-Failover Circuit**: Automatically detects `503 High Demand` or `429 Rate Limit` errors and cascades down to available models (`3.6-flash` $\rightarrow$ `3.5-flash` $\rightarrow$ `2.5-flash` $\rightarrow$ `2.0-flash`).
+* **Auto-Failover Circuit**: Automatically detects `503 High Demand` or `429 Rate Limit` errors and cascades down to available models (`3.6-flash` $\rightarrow$ `3.5-flash` $\rightarrow$ `3.7-flash`). The model select moves to whichever model answered, so a silent failover is still visible.
 * **Live Generation Stopwatch**: Real-time timer tracking elapsed seconds during generation and displaying total build time.
 * **Live Mesh Diagnostics**: Dynamic triangle polycount and object-count counters.
 * **Studio Lighting Presets**: Toggle between *Clean Studio Light*, *Cyberpunk Dusk*, and *Warm Sunlight*.
@@ -242,6 +242,7 @@ declared in `index.html`.
             ├── image-input.js    # Dropzone, paste, preview, client-side rescaling
             ├── export-menu.js    # Export dropdown behavior
             ├── inspector.js      # Selection inspector + material editor
+            ├── theme.js          # Light/dark switching + persistence
             └── timer.js          # Generation stopwatch
 ```
 
@@ -280,7 +281,40 @@ app means editing that one file.
 | Tweak lights or add a lighting preset    | `src/js/config.js` + `src/js/viewer/lighting.js` |
 | Add an HDRI or change its resolution     | `src/js/config.js` (`ENVIRONMENTS`, `HDRI_BASE_URL`) |
 | Adjust colors and spacing                | `src/styles/variables.css`          |
+| Tune the light theme                     | `src/styles/variables.css` (`[data-theme="light"]`) + `VIEWPORT_THEMES` |
 | Add a new UI control                     | `index.html` + `src/js/dom.js` + `src/js/main.js` |
+
+---
+
+## 🌓 Themes
+
+A switcher in the panel header toggles between the dark default and a light
+theme. The choice persists in `localStorage`.
+
+The entire interface is driven by custom properties, so the light theme is
+**only a second token block** in `variables.css` under `:root[data-theme="light"]`
+— no parallel rule set. Two things could not simply inherit tokens and are
+handled explicitly:
+
+* **The 3D viewport has no CSS.** Background, fog, grid colours and shadow
+  opacity come from `VIEWPORT_THEMES` in `config.js`, applied when the theme
+  changes. `GridHelper` bakes colours into vertex data, so it is rebuilt rather
+  than recoloured.
+* **Lighting presets own the scene backdrop**, so each carries one per theme —
+  *Cyberpunk dusk* stays moody in light mode instead of punching a black hole
+  in a white interface.
+
+An inline script in `<head>` applies the stored theme before first paint;
+module scripts are deferred, so without it a light-theme user would see a dark
+flash on every load.
+
+Dark remains the default. A returning user who never touched the switcher
+should not be surprised by a white screen.
+
+**Note:** the theme is interface chrome, not a render setting. A generated
+model looks identical in both — metals reflect the chosen *environment*, not
+the page background, so chrome can read dark against a light viewport. Pick a
+brighter environment if that matters for a screenshot.
 
 ---
 

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { LIGHTING_PRESETS, ENV_LIGHT_SCALE } from '../config.js';
+import { LIGHTING_PRESETS, ENV_LIGHT_SCALE, DEFAULT_THEME } from '../config.js';
 
 /** Intensities the rig uses on its own, with no environment map. */
 const BASE_INTENSITY = { ambient: 0.9, key: 1.8, fill: 1.1, rim: 0.6 };
@@ -76,8 +76,9 @@ export function setEnvironmentActive(lights, active) {
  * @param {THREE.Scene} scene
  * @param {ReturnType<typeof createLighting>} lights
  * @param {keyof typeof LIGHTING_PRESETS} presetName
+ * @param {string} [theme] Chooses the preset's light or dark backdrop.
  */
-export function applyLightingPreset(scene, lights, presetName) {
+export function applyLightingPreset(scene, lights, presetName, theme = DEFAULT_THEME) {
   const preset = LIGHTING_PRESETS[presetName];
   if (!preset) return;
 
@@ -86,5 +87,10 @@ export function applyLightingPreset(scene, lights, presetName) {
   lights.rim.color.setHex(preset.rim);
   lights.presetAmbient = preset.ambientIntensity;
   refreshIntensities(lights);
-  scene.background.setHex(preset.background);
+
+  // Each preset carries a backdrop per theme, so "cyberpunk dusk" stays moody
+  // in light mode instead of punching a black hole in a white interface.
+  const backdrop = preset.background[theme] ?? preset.background[DEFAULT_THEME];
+  scene.background.setHex(backdrop);
+  scene.fog.color.setHex(backdrop);
 }

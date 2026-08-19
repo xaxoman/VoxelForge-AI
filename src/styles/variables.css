@@ -53,4 +53,47 @@
      One subtle shadow, used sparingly for genuinely floating surfaces. */
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.25);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.45);
+
+  /* Panel-tinted control fills, so hover states can differ per theme. */
+  --control-hover: #1f1f24;
+  --track-hover: #45454e;
+  color-scheme: dark;
+}
+
+/*
+ * Light theme.
+ *
+ * Only the tokens change — every rule elsewhere reads these, so the whole
+ * interface flips without a second set of selectors. The accent keeps the same
+ * hue but darkens slightly, since indigo at full brightness loses contrast
+ * against white.
+ */
+:root[data-theme="light"] {
+  --bg: #fafafa;
+  --panel: #ffffff;
+  --panel-raised: #f4f4f5;
+  --panel-inset: #fafafa;
+
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+  --border-focus: #4f46e5;
+
+  --text: #18181b;
+  --text-muted: #52525b;
+  --text-subtle: #71717a;
+
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-subtle: rgba(79, 70, 229, 0.10);
+  --accent-border: rgba(79, 70, 229, 0.35);
+
+  --danger: #dc2626;
+  --success: #16a34a;
+
+  --shadow: 0 1px 2px rgba(9, 9, 11, 0.06), 0 4px 12px rgba(9, 9, 11, 0.08);
+  --shadow-lg: 0 8px 24px rgba(9, 9, 11, 0.12);
+
+  --control-hover: #ebebee;
+  --track-hover: #c4c4cc;
+  color-scheme: light;
 }
