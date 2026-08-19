@@ -25,12 +25,11 @@ export const dom = {
   mergeModeSelect: byId('merge-mode'),
   promptInput: byId('prompt-input'),
 
-  // Reference image
+  // Reference views
   imageDropzone: byId('image-dropzone'),
   fileInput: byId('file-input'),
-  previewWrapper: byId('preview-wrapper'),
-  imagePreview: byId('image-preview'),
-  removeImageBtn: byId('remove-image-btn'),
+  referenceGrid: byId('reference-grid'),
+  referenceStatus: byId('reference-status'),
 
   // Actions
   generateBtn: byId('generate-btn'),

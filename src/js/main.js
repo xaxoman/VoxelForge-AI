@@ -34,11 +34,12 @@ const apiKey = initApiKeyField({
 const imageInput = initImageInput({
   dropzone: dom.imageDropzone,
   fileInput: dom.fileInput,
-  previewWrapper: dom.previewWrapper,
-  preview: dom.imagePreview,
-  removeBtn: dom.removeImageBtn,
-  onChange: (hasImage) => {
-    dom.generateBtnLabel.textContent = hasImage ? GENERATE_LABELS.image : GENERATE_LABELS.text;
+  grid: dom.referenceGrid,
+  status: dom.referenceStatus,
+  // 0 references reads as a text prompt, 1 as a recreation, 2+ as a fusion.
+  onChange: (count) => {
+    const byCount = [GENERATE_LABELS.text, GENERATE_LABELS.image];
+    dom.generateBtnLabel.textContent = byCount[count] || GENERATE_LABELS.multiView;
   },
 });
 
@@ -123,7 +124,7 @@ async function generateWithRepair(request) {
 async function handleGenerate() {
   const key = apiKey.getKey();
   const prompt = dom.promptInput.value.trim();
-  const image = imageInput.getImage();
+  const images = imageInput.getImages();
 
   if (!key) {
     alert('Please enter your Google Gemini API Key first.\n(Get one at: https://aistudio.google.com/app/apikey)');
@@ -131,8 +132,8 @@ async function handleGenerate() {
     return;
   }
 
-  if (!prompt && !image) {
-    alert('Please enter a prompt or attach an image.');
+  if (!prompt && !images.length) {
+    alert('Please enter a prompt or attach a reference view.');
     return;
   }
 
@@ -144,7 +145,7 @@ async function handleGenerate() {
       apiKey: key,
       model: dom.modelSelect.value,
       prompt,
-      image,
+      images,
       detailLevel: dom.detailLevelSelect.value,
       materialStyle: dom.materialStyleSelect.value,
     });
@@ -181,7 +182,7 @@ async function handleExport(format) {
     return;
   }
 
-  const fallbackName = imageInput.getImage() ? 'model_asset' : 'model';
+  const fallbackName = imageInput.getImages().length ? 'model_asset' : 'model';
 
   // The exporter reads the live model's materials; hold disposal so a
   // generation finishing mid-export can't free them underneath it.

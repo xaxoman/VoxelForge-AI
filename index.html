@@ -168,23 +168,22 @@
           </select>
         </div>
 
-        <!-- Image Dropzone -->
+        <!--
+          Reference views. Rows are rendered by ui/image-input.js, which owns
+          how many are attached and which angle each one is tagged with.
+        -->
         <div>
-          <label class="field-label">Reference image</label>
+          <label class="field-label">Reference views</label>
           <div class="image-dropzone" id="image-dropzone">
             <div class="dropzone-text">
               <svg class="icon" aria-hidden="true"><use href="#i-image"/></svg>
               <span>Drop, click, or paste <b>Ctrl+V</b></span>
             </div>
-            <input type="file" id="file-input" accept="image/*">
+            <input type="file" id="file-input" accept="image/*" multiple>
           </div>
 
-          <div class="image-preview-container" id="preview-wrapper">
-            <img id="image-preview" src="" alt="Reference preview">
-            <button class="remove-image-btn" id="remove-image-btn" title="Remove image" aria-label="Remove image">
-              <svg class="icon icon-sm" aria-hidden="true"><use href="#i-x"/></svg>
-            </button>
-          </div>
+          <div class="reference-grid" id="reference-grid"></div>
+          <p class="reference-status" id="reference-status"></p>
         </div>
 
         <div class="divider"></div>

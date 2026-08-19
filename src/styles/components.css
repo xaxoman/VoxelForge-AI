@@ -82,11 +82,6 @@ option {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2352525b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
-/* The remove-image button sits on a photo, so it keeps a dark scrim. */
-:root[data-theme="light"] .remove-image-btn {
-  background: rgba(255, 255, 255, 0.9);
-}
-
 /* --- Image reference dropzone --- */
 
 .image-dropzone {
@@ -129,44 +124,74 @@ option {
   display: none;
 }
 
-.image-preview-container {
+/* --- Attached reference views ---
+   One row per image: thumbnail, the angle it was shot from, and a remove
+   button. Rows stack vertically because the angle label has to stay readable
+   in a narrow sidebar — a thumbnail grid hides the very thing that makes the
+   set orthographic. */
+
+.reference-grid {
   display: none;
-  position: relative;
-  width: 100%;
-  height: 120px;
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--panel-inset);
-  border: 1px solid var(--border);
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 
-.image-preview-container img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.remove-image-btn {
-  position: absolute;
-  top: var(--space-2);
-  right: var(--space-2);
-  background: rgba(10, 10, 11, 0.85);
-  color: var(--text-muted);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  cursor: pointer;
+.reference-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  gap: var(--space-2);
+  background: var(--panel-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-2);
 }
 
-.remove-image-btn:hover {
+.reference-thumb {
+  width: 48px;
+  height: 36px;
+  flex-shrink: 0;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  background: var(--panel-raised);
+}
+
+/* Replaced by a plain name while a single reference is attached: the angle only
+   carries meaning once there is a second view to reconcile it against. */
+.reference-view {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.75rem;
+  padding: var(--space-1) var(--space-5) var(--space-1) var(--space-2);
+  background-color: var(--panel-raised);
+}
+
+.reference-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.reference-row .reference-remove {
+  flex-shrink: 0;
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--text-subtle);
+}
+
+.reference-row .reference-remove:hover {
   color: var(--danger);
   border-color: var(--danger);
+}
+
+.reference-status {
+  margin-top: var(--space-2);
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: var(--text-subtle);
 }
 
 /* --- Buttons ---

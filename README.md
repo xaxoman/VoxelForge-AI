@@ -26,7 +26,7 @@ Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to pr
 │   ┌─────────────────────┐                 ┌────────────────────────┐   │
 │   │   Multimodal Input  │                 │    Three.js Viewport   │   │
 │   │ ├── Text Prompt     │                 │ ├── ACESFilmic Tone    │   │
-│   │ ├── Image Drop/File │                 │ ├── Dynamic Studio PBR │   │
+│   │ ├── 2-3 Ortho Views │                 │ ├── Dynamic Studio PBR │   │
 │   │ └── Clipboard Paste │                 │ ├── Soft Shadow Maps   │   │
 │   └──────────┬──────────┘                 │ └── Turntable Controls │   │
 │              │                            └───────────▲────────────┘   │
@@ -55,8 +55,9 @@ Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to pr
 ## 🚀 Features Implemented So Far
 
 ### 1. Multimodal Text & Image-to-3D Synthesis
+* **Orthographic Multi-Angle Input**: Attach up to **three** reference views — front, side, top — and Gemini reads all of them at once to fix scale in all three axes. See [Orthographic multi-angle input](#-orthographic-multi-angle-input).
 * **Clipboard Paste (`Ctrl+V`)**: Paste reference images directly from the clipboard.
-* **Drag-and-Drop / File Upload**: Drop any `.png`, `.jpg`, or `.webp` reference into the lateral bar.
+* **Drag-and-Drop / File Upload**: Drop any `.png`, `.jpg`, or `.webp` reference into the lateral bar — several at once.
 * **Client-Side Image Rescaling**: Auto-optimizes reference images using an offscreen canvas to keep payloads light and API round-trips fast.
 * **Vision Topology Decomposition**: Gemini deconstructs 2D images into silhouette, symmetry, sub-parts, and colors.
 
@@ -168,6 +169,7 @@ it then applies to every model you import.
 ## 🗺️ Product Roadmap & Production-Grade Suggestions
 
 ### Phase 1: Visual Realism & Shading
+- [x] **Orthographic Multi-Angle Input** — ships as the **Reference views** control: 2–3 labelled angles analysed together so scale is solved across all of them. See [Orthographic multi-angle input](#-orthographic-multi-angle-input).
 - [x] **HDRI Image-Based Lighting (IBL)** — ships as the **Environment** control, with a procedural studio default and optional Poly Haven CC0 HDRIs. See [Reflections & environment lighting](#-reflections--environment-lighting).
 - [x] **CSG Boolean Operations** — real constructive solid geometry via `three-bvh-csg`, loaded on demand. See [Boolean operations](#-boolean-operations-csg).
 - [x] **Procedural Canvas Texture Baking** — ships as the `TEX` library handed to generated code. See [Procedural textures](#-procedural-textures).
@@ -239,7 +241,7 @@ declared in `index.html`.
         │   └── merge.js          # Draw call optimization via geometry merging
         └── ui/
             ├── api-key.js        # Key persistence + status indicator
-            ├── image-input.js    # Dropzone, paste, preview, client-side rescaling
+            ├── image-input.js    # Dropzone, paste, multi-view slots, client-side rescaling
             ├── export-menu.js    # Export dropdown behavior
             ├── inspector.js      # Selection inspector + material editor
             ├── theme.js          # Light/dark switching + persistence
@@ -280,6 +282,7 @@ app means editing that one file.
 | Change how meshes are grouped for merging | `src/js/export/merge.js`           |
 | Tweak lights or add a lighting preset    | `src/js/config.js` + `src/js/viewer/lighting.js` |
 | Add an HDRI or change its resolution     | `src/js/config.js` (`ENVIRONMENTS`, `HDRI_BASE_URL`) |
+| Add a reference angle or raise the view cap | `src/js/config.js` (`REFERENCE_VIEWS`, `MAX_REFERENCE_IMAGES`) |
 | Adjust colors and spacing                | `src/styles/variables.css`          |
 | Tune the light theme                     | `src/styles/variables.css` (`[data-theme="light"]`) + `VIEWPORT_THEMES` |
 | Add a new UI control                     | `index.html` + `src/js/dom.js` + `src/js/main.js` |
@@ -315,6 +318,103 @@ should not be surprised by a white screen.
 model looks identical in both — metals reflect the chosen *environment*, not
 the page background, so chrome can read dark against a light viewport. Pick a
 brighter environment if that matters for a screenshot.
+
+---
+
+## 📐 Orthographic Multi-Angle Input
+
+One photo is one silhouette. Everything behind it — depth, the far side, how
+tall a part really is relative to how long it is — is guesswork, and a model
+asked to guess will produce something plausible rather than something correct.
+
+Attach **two or three views of the same object** and that guesswork disappears:
+each angle measures two of the three axes, so together they pin down the whole
+bounding box.
+
+```text
+  Front view             Side view              Top view
+  ┌─────────┐            ┌───────────┐          ┌─────────┐
+  │         │ Y          │           │ Y        │         │ Z
+  │         │ height     │           │ height   │         │ depth
+  └─────────┘            └───────────┘          └─────────┘
+    X width                Z depth                X width
+
+    X + Y                  Z + Y                  X + Z
+         ╲                   │                   ╱
+          ╲                  │                  ╱
+           →  one bounding box, all three axes, nothing guessed
+```
+
+### Using it
+
+1. Drop, paste, or pick **up to three images**. Several files at once is fine —
+   they fill the slots in order.
+2. The first three are tagged **Front**, **Side** and **Top** automatically. Any
+   row can be re-tagged from its dropdown; **Back**, **Bottom** and **3/4 or
+   detail** are also available.
+3. Generate. The button reads **Fuse views into 3D** once a second angle is
+   attached.
+
+Picking an angle another row already holds swaps the two rather than
+duplicating it — two images claiming "front" would leave an axis unmeasured.
+
+### What gets sent
+
+Each image travels as its own labelled part, with the label immediately ahead of
+the picture it describes:
+
+```text
+text  → REFERENCE 2 of 3 — SIDE VIEW.
+        Its horizontal direction is Z (depth, back to front); its vertical
+        direction is Y (height, bottom to top). It cannot show X (width, left
+        to right) — take that axis from another view.
+        Read from it: the profile silhouette and how mass is distributed…
+image → <side.png>
+```
+
+An unlabelled stack of images is the failure case worth avoiding: models average
+it into one mushy silhouette that matches none of the views, or treat three
+pictures as three separate objects.
+
+The system instruction then carries a reconciliation protocol built from the
+views actually attached — including the shared-axis checks that catch scale
+errors:
+
+```text
+   - Front view vs Side view: Y (height, bottom to top) must come out identical in both.
+   - Front view vs Top view:  X (width, left to right)  must come out identical in both.
+   - Side view vs Top view:   Z (depth, back to front)  must come out identical in both.
+```
+
+Height read off the front view has to match height read off the side view. When
+they disagree, the prompt says which one to trust and to apply that single
+number everywhere — rather than letting each part settle its own scale.
+
+### Blind spots
+
+The other half of the protocol is about what *not* to build. Surfaces no view
+covers are continued from the forms and symmetry the views establish, and left
+plain; invented greebles on an unseen face are the most common way a
+multi-view reconstruction stops matching its reference. The same rule catches
+double-building: a wheel visible in both the front and side view is one wheel,
+not two.
+
+### Notes
+
+* **Angles are only used when there are two or more.** A single reference is
+  sent bare, exactly as before — an axis map is a claim about a picture, and
+  claiming a lone 3/4 render is a front elevation is worse than saying nothing.
+  The angle dropdown appears when the second image does.
+* **`3/4 or detail`** is the escape hatch for a non-orthographic image. It is
+  labelled as foreshortened and explicitly excluded from measurement, so it
+  contributes colour, finish and construction detail without corrupting scale.
+* **Back and bottom views are marked as mirrored** against their opposite, so a
+  feature on the left of a back view does not end up on the left of the model.
+* Every view is rescaled to `MAX_IMAGE_DIMENSION` (800px) before upload, so
+  three references cost roughly three times a single one — not three times a
+  full-resolution photo.
+* The repair pass keeps all views attached, so a correction stays matched to
+  every reference rather than drifting back to the first one.
 
 ---
 
@@ -636,5 +736,6 @@ Then:
 
 1. Open <http://localhost:5173> in a modern browser (Chrome, Edge, Firefox, Safari).
 2. Paste your [Google AI Studio API Key](https://aistudio.google.com/app/apikey) — it is stored in `localStorage`, never sent anywhere but Google's API.
-3. Paste an image reference (`Ctrl+V`) or type a prompt.
-4. Click **✨ Generate 3D Model** and export your asset!
+3. Type a prompt, or attach reference views (`Ctrl+V`, drag-and-drop, or click) —
+   two or three angles of the same object gives the most accurate result.
+4. Click the generate button and export your asset!
