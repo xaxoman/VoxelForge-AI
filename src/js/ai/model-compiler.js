@@ -4,6 +4,7 @@ import {
   TEXTURE_FACTORIES,
   TEXTURE_RESOLUTION,
 } from '../textures/procedural.js';
+import { createCsgHelper, CSG_METHODS } from '../geometry/csg.js';
 
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 
@@ -68,6 +69,28 @@ export function findUnknownTextureFactories(source) {
   return unknown;
 }
 
+/**
+ * Finds `CSG.something(...)` calls naming an operation that does not exist.
+ * @param {string} source
+ * @returns {string[]}
+ */
+export function findUnknownCsgMethods(source) {
+  const code = stripNonCode(source);
+  const unknown = [];
+
+  for (const match of code.matchAll(/\bCSG\s*\.\s*([A-Za-z_$][\w$]*)\s*\(/g)) {
+    const name = match[1];
+    if (!CSG_METHODS.includes(name) && !unknown.includes(name)) unknown.push(name);
+  }
+
+  return unknown;
+}
+
+/** True when the code actually references CSG, gating the 360 KB import. */
+export function usesCsg(source) {
+  return /\bCSG\s*\./.test(stripNonCode(source));
+}
+
 /** Texture canvas edge length for a detail level, defaulting to high. */
 function resolutionFor(detailLevel) {
   return TEXTURE_RESOLUTION[detailLevel] ?? TEXTURE_RESOLUTION.high;
@@ -96,11 +119,13 @@ export function listAvailableGeometries() {
 export async function buildModelFromCode(codeString, options = {}) {
   const unknownClasses = findUnknownThreeClasses(codeString);
   const unknownFactories = findUnknownTextureFactories(codeString);
+  const unknownCsg = findUnknownCsgMethods(codeString);
 
-  if (unknownClasses.length > 0 || unknownFactories.length > 0) {
+  if (unknownClasses.length > 0 || unknownFactories.length > 0 || unknownCsg.length > 0) {
     const names = [
       ...unknownClasses.map((name) => `THREE.${name}`),
       ...unknownFactories.map((name) => `TEX.${name}`),
+      ...unknownCsg.map((name) => `CSG.${name}`),
     ];
     const error = new Error(
       `The generated code uses ${names.join(', ')}, which ${names.length > 1 ? 'do' : 'does'} not exist.`,
@@ -108,18 +133,25 @@ export async function buildModelFromCode(codeString, options = {}) {
     error.isApiError = true;
     error.unknownClasses = unknownClasses;
     error.unknownFactories = unknownFactories;
+    error.unknownCsgMethods = unknownCsg;
     throw error;
   }
 
-  // TEX arrives as a second argument, so a `createModel(THREE)` written without
-  // it keeps working — JavaScript ignores the surplus argument.
+  // TEX and CSG arrive as extra arguments, so a `createModel(THREE)` written
+  // without them keeps working — JavaScript ignores surplus arguments.
   const textures = createTextureLibrary(resolutionFor(options.detailLevel));
+
+  // Booleans are synchronous once running, so the library has to be resolved
+  // before the generated code starts — but only if it actually asked for it.
+  const csg = usesCsg(codeString) ? await createCsgHelper() : null;
+
   const executable = new AsyncFunction(
     'THREE',
     'TEX',
-    `${codeString}\nreturn createModel(THREE, TEX);`,
+    'CSG',
+    `${codeString}\nreturn createModel(THREE, TEX, CSG);`,
   );
-  const model = await executable(THREE, textures);
+  const model = await executable(THREE, textures, csg);
 
   if (!model || !model.isObject3D) {
     throw new Error('Generated code did not return a valid Three.js object.');

@@ -20,6 +20,13 @@ export const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta
  */
 export const MAX_REPAIR_ATTEMPTS = 2;
 
+/**
+ * Combined triangle ceiling for one boolean operation. CSG runs on the main
+ * thread, so an unbounded operation on a dense mesh locks the tab; refusing is
+ * better than a multi-second freeze, and the repair pass can simplify instead.
+ */
+export const MAX_CSG_TRIANGLES = 50000;
+
 /** Sampling temperature used for every generation request. */
 export const GENERATION_TEMPERATURE = 0.6;
 
