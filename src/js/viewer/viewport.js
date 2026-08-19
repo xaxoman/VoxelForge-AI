@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import { createScene } from './scene.js';
+import { createScene, applySceneTheme } from './scene.js';
 import { createLighting, applyLightingPreset, setEnvironmentActive } from './lighting.js';
 import { EnvironmentManager } from './environment.js';
 import { SelectionManager } from './selection.js';
+import { DEFAULT_THEME } from '../config.js';
 import { countMaterialGroups } from '../export/merge.js';
 
 const TURNTABLE_SPEED = 0.008;
@@ -15,9 +16,17 @@ const TURNTABLE_SPEED = 0.008;
  * in through `setModel()` and reads stats back out through `getStats()`.
  */
 export class Viewport {
-  /** @param {HTMLElement} container Element the canvas is mounted into. */
-  constructor(container) {
-    const { scene, camera, renderer, controls } = createScene(container);
+  /**
+   * @param {HTMLElement} container Element the canvas is mounted into.
+   * @param {string} [theme] Initial viewport palette.
+   */
+  constructor(container, theme = DEFAULT_THEME) {
+    this.theme = theme;
+    this.lightingPreset = 'studio';
+
+    const { scene, camera, renderer, controls, grid, floor } = createScene(container, theme);
+    this.grid = grid;
+    this.floor = floor;
 
     this.scene = scene;
     this.camera = camera;
@@ -187,7 +196,23 @@ export class Viewport {
 
   /** @param {keyof import('../config.js').LIGHTING_PRESETS} presetName */
   setLightingPreset(presetName) {
-    applyLightingPreset(this.scene, this.lights, presetName);
+    this.lightingPreset = presetName;
+    applyLightingPreset(this.scene, this.lights, presetName, this.theme);
+  }
+
+  /**
+   * Re-colours the viewport for a UI theme. The lighting preset is re-applied
+   * afterwards because it owns the scene backdrop.
+   *
+   * @param {string} theme
+   */
+  setTheme(theme) {
+    this.theme = theme;
+    this.grid = applySceneTheme(
+      { scene: this.scene, grid: this.grid, floor: this.floor },
+      theme,
+    );
+    applyLightingPreset(this.scene, this.lights, this.lightingPreset, theme);
   }
 
   /**

@@ -10,6 +10,17 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="./src/styles/main.css">
 
+  <!--
+    Runs before first paint. Module scripts are deferred, so without this a
+    stored light theme would flash dark while main.js loads.
+  -->
+  <script>
+    try {
+      var t = localStorage.getItem('hypermesh_theme');
+      document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+    } catch (e) { document.documentElement.setAttribute('data-theme', 'dark'); }
+  </script>
+
   <!-- ES Module Polyfill & Three.js Exporters -->
   <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
   <script type="importmap">
@@ -95,6 +106,13 @@
       <path d="m12 2 9 5-9 5-9-5Z"/>
       <path d="m3 12 9 5 9-5M3 17l9 5 9-5"/>
     </symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="4"/>
+      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+    </symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24">
+      <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9"/>
+    </symbol>
     <symbol id="i-cursor" viewBox="0 0 24 24">
       <path d="m4 4 7.07 17 2.51-7.42L21 11.07Z"/>
     </symbol>
@@ -121,7 +139,9 @@
     <div class="panel lateral-panel">
       <div class="panel-header">
         <h1><span class="wordmark-dot"></span>HyperMesh</h1>
-        <span class="badge" id="active-model-badge">3.6-flash</span>
+        <button class="icon-only ghost" id="theme-toggle" title="Switch theme" aria-label="Switch theme">
+          <svg class="icon icon-sm" aria-hidden="true"><use href="#i-sun"/></svg>
+        </button>
       </div>
       <p class="subtitle">Text and image to production-ready 3D.</p>
 
@@ -144,9 +164,6 @@
           <select id="model-select">
             <option value="gemini-3.6-flash" selected>gemini-3.6-flash — recommended</option>
             <option value="gemini-3.5-flash">gemini-3.5-flash</option>
-            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-            <option value="gemini-2.0-flash">gemini-2.0-flash</option>
-            <option value="gemini-1.5-flash">gemini-1.5-flash</option>
             <option value="gemini-3.7-flash">gemini-3.7-flash — preview</option>
           </select>
         </div>

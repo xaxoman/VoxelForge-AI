@@ -18,7 +18,7 @@ export const dom = {
 
   // Generation settings
   modelSelect: byId('model-select'),
-  activeModelBadge: byId('active-model-badge'),
+  themeToggle: byId('theme-toggle'),
   detailLevelSelect: byId('detail-level'),
   materialStyleSelect: byId('material-style'),
   collisionModeSelect: byId('collision-mode'),

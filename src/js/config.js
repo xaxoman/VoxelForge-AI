@@ -37,9 +37,7 @@ export const GENERATION_TEMPERATURE = 0.6;
 export const FALLBACK_MODELS = [
   'gemini-3.6-flash',
   'gemini-3.5-flash',
-  'gemini-2.5-flash',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
+  'gemini-3.7-flash',
 ];
 
 /** HTTP statuses that should trigger a fallback rather than an error. */
@@ -92,21 +90,21 @@ export const LIGHTING_PRESETS = {
     fill: 0x94a3b8,
     rim: 0x6366f1,
     ambientIntensity: 0.8,
-    background: 0x0a0a0b,
+    background: { dark: 0x0a0a0b, light: 0xf1f1f3 },
   },
   cyberpunk: {
     key: 0xff007f,
     fill: 0x00f0ff,
     rim: 0x7928ca,
     ambientIntensity: 0.5,
-    background: 0x08080f,
+    background: { dark: 0x08080f, light: 0xdedbec },
   },
   sunlight: {
     key: 0xfff5ea,
     fill: 0x87ceeb,
     rim: 0xffd700,
     ambientIntensity: 1.0,
-    background: 0x0f0d0a,
+    background: { dark: 0x0f0d0a, light: 0xf7f1e6 },
   },
 };
 
@@ -145,14 +143,36 @@ export const MAX_HULL_POINTS = 8000;
 /** Editor script that teaches Unity the same suffixes Godot reads natively. */
 export const UNITY_POSTPROCESSOR_PATH = './integrations/unity/HyperMeshColliderPostprocessor.cs';
 
+/** UI themes available from the switcher. */
+export const THEMES = ['dark', 'light'];
+
+/** Theme used before the user picks one. */
+export const DEFAULT_THEME = 'dark';
+
+/** localStorage key holding the chosen theme. */
+export const THEME_STORAGE_KEY = 'hypermesh_theme';
+
 /**
- * Viewport colours. Kept deliberately desaturated so the generated model is the
- * only saturated thing on screen.
+ * Viewport colours per theme. Kept deliberately desaturated so the generated
+ * model is the only saturated thing on screen.
+ *
+ * The light grid is darker than its background rather than lighter, and its
+ * shadows are softened — a shadow tuned for near-black reads as a smudge on
+ * white.
  */
-export const VIEWPORT_THEME = {
-  background: 0x0a0a0b,
-  fogDensity: 0.025,
-  gridCenterLine: 0x2e2e35,
-  gridLine: 0x1a1a1e,
-  floorShadowOpacity: 0.4,
+export const VIEWPORT_THEMES = {
+  dark: {
+    background: 0x0a0a0b,
+    fogDensity: 0.025,
+    gridCenterLine: 0x2e2e35,
+    gridLine: 0x1a1a1e,
+    floorShadowOpacity: 0.4,
+  },
+  light: {
+    background: 0xf1f1f3,
+    fogDensity: 0.016,
+    gridCenterLine: 0xb8b8c2,
+    gridLine: 0xdcdce2,
+    floorShadowOpacity: 0.18,
+  },
 };
