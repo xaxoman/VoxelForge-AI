@@ -50,6 +50,78 @@ export const MAX_IMAGE_DIMENSION = 800;
 export const IMAGE_ENCODE_QUALITY = 0.85;
 
 /**
+ * How many reference views one request may carry.
+ *
+ * Two or three orthographic views pin down all three axes; past that the extra
+ * images mostly repeat information already given while inflating the payload.
+ */
+export const MAX_REFERENCE_IMAGES = 3;
+
+/**
+ * Camera angles a reference image can be tagged with.
+ *
+ * `short` is the compact name used in the sidebar summary. `axes` maps the
+ * image's own horizontal and vertical directions onto the Three.js axes it
+ * therefore measures, which is what lets the prompt tell the model which
+ * dimension to read from which picture — and which two views have to agree on
+ * a shared dimension. A view with `axes: null` is not an orthographic
+ * projection, so it carries appearance but no measurements.
+ */
+export const REFERENCE_VIEWS = {
+  front: {
+    label: 'Front view',
+    short: 'front',
+    axes: { horizontal: 'x', vertical: 'y' },
+    reads: 'left/right symmetry, the frontal silhouette, and every feature on the leading face',
+  },
+  side: {
+    label: 'Side view',
+    short: 'side',
+    axes: { horizontal: 'z', vertical: 'y' },
+    reads: 'the profile silhouette and how mass is distributed from nose to tail',
+  },
+  top: {
+    label: 'Top view',
+    short: 'top',
+    axes: { horizontal: 'x', vertical: 'z' },
+    reads: 'the plan-view footprint and anything mounted on the upper surface',
+  },
+  back: {
+    label: 'Back view',
+    short: 'back',
+    axes: { horizontal: 'x', vertical: 'y' },
+    reads: 'the rear face — exhausts, tail lights, vents, cargo',
+    note: 'This view is mirrored along X relative to the front view: a feature on the left of this image sits on the right of the model.',
+  },
+  bottom: {
+    label: 'Bottom view',
+    short: 'bottom',
+    axes: { horizontal: 'x', vertical: 'z' },
+    reads: 'the underside — chassis, thrusters, landing gear, panel breaks',
+    note: 'This view is mirrored along Z relative to the top view.',
+  },
+  detail: {
+    label: '3/4 or detail',
+    short: '3/4',
+    axes: null,
+    reads: 'material finish, colour, and how surfaces meet at the corners',
+  },
+};
+
+/** Human-readable axis names used when explaining a view to the model. */
+export const AXIS_LABELS = {
+  x: 'X (width, left to right)',
+  y: 'Y (height, bottom to top)',
+  z: 'Z (depth, back to front)',
+};
+
+/**
+ * Views handed to images as they are added, in order. Front/side/top is the
+ * classic orthographic triple and resolves all three axes with no redundancy.
+ */
+export const DEFAULT_VIEW_ORDER = ['front', 'side', 'top'];
+
+/**
  * Poly Haven's CC0 HDRI file CDN. Assets are 1k so a load stays around 1-2 MB.
  * Swap the resolution segment for 2k/4k if you want sharper reflections at the
  * cost of download size.
@@ -117,10 +189,11 @@ export const SAMPLE_PROMPTS = [
   'Retro arcade gaming machine with joystick and glowing CRT screen',
 ];
 
-/** Button labels that change depending on whether a reference image is set. */
+/** Button labels that change with how many reference images are attached. */
 export const GENERATE_LABELS = {
   text: 'Generate model',
   image: 'Recreate in 3D',
+  multiView: 'Fuse views into 3D',
 };
 
 /**

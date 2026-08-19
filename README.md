@@ -13,7 +13,7 @@
 
 **HyperMesh 3D Studio** is a serverless, client-side generative 3D web application that turns plain text prompts and 2D reference images into fully articulated, physically-based Three.js 3D models in seconds.
 
-Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to procedurally synthesize structured, editable, and hierarchically organized Three.js scene graphs. Models are rendered with real-time ACES Filmic PBR lighting and can be exported immediately into industry-standard formats (**`.GLB`**, **`.GLTF`**, **`.OBJ`**, **`.STL`**) ready for direct drag-and-drop into **Godot**, **Unity**, **Blender**, or **3D printing slicers**.
+Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to procedurally synthesize structured, editable, and hierarchically organized Three.js scene graphs. Because the output is code rather than an opaque mesh, a model can be refined in conversation — *"swap the spoiler for dual thrusters"* — instead of regenerated from scratch. Models are rendered with real-time ACES Filmic PBR lighting and can be exported immediately into industry-standard formats (**`.GLB`**, **`.GLTF`**, **`.OBJ`**, **`.STL`**) ready for direct drag-and-drop into **Godot**, **Unity**, **Blender**, or **3D printing slicers**.
 
 ---
 
@@ -26,8 +26,8 @@ Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to pr
 │   ┌─────────────────────┐                 ┌────────────────────────┐   │
 │   │   Multimodal Input  │                 │    Three.js Viewport   │   │
 │   │ ├── Text Prompt     │                 │ ├── ACESFilmic Tone    │   │
-│   │ ├── Image Drop/File │                 │ ├── Dynamic Studio PBR │   │
-│   │ └── Clipboard Paste │                 │ ├── Soft Shadow Maps   │   │
+│   │ ├── 2-3 Ortho Views │                 │ ├── Dynamic Studio PBR │   │
+│   │ └── Refine / Edit   │                 │ ├── Soft Shadow Maps   │   │
 │   └──────────┬──────────┘                 │ └── Turntable Controls │   │
 │              │                            └───────────▲────────────┘   │
 │              ▼                                        │                │
@@ -55,35 +55,41 @@ Unlike heavy, closed neural-mesh black boxes, HyperMesh uses Google Gemini to pr
 ## 🚀 Features Implemented So Far
 
 ### 1. Multimodal Text & Image-to-3D Synthesis
+* **Orthographic Multi-Angle Input**: Attach up to **three** reference views — front, side, top — and Gemini reads all of them at once to fix scale in all three axes. See [Orthographic multi-angle input](#-orthographic-multi-angle-input).
 * **Clipboard Paste (`Ctrl+V`)**: Paste reference images directly from the clipboard.
-* **Drag-and-Drop / File Upload**: Drop any `.png`, `.jpg`, or `.webp` reference into the lateral bar.
+* **Drag-and-Drop / File Upload**: Drop any `.png`, `.jpg`, or `.webp` reference into the lateral bar — several at once.
 * **Client-Side Image Rescaling**: Auto-optimizes reference images using an offscreen canvas to keep payloads light and API round-trips fast.
 * **Vision Topology Decomposition**: Gemini deconstructs 2D images into silhouette, symmetry, sub-parts, and colors.
 
-### 2. High-Fidelity Geometry & Spatial Modeling
+### 2. Conversational Iterative Edit
+* **Refine Box**: A second prompt that changes the model already on stage — *"replace the rear spoiler with dual exhaust thrusters"* — instead of starting a new one. See [Iterative edit mode](#-iterative-edit-mode).
+* **Real Multi-Turn Thread**: Each refinement is the next turn of the same conversation, so *"make that a bit wider"* resolves against the previous edit the way a person would read it.
+* **Bounded Context**: Only the newest revision carries its source; superseded ones collapse to a one-line notice, so a long edit session does not re-upload the whole model every turn.
+
+### 3. High-Fidelity Geometry & Spatial Modeling
 * **Detail Level Presets**:
   * **Ultra (Micro-parts)**: Generates complex composite shapes, chamfers, wheel hubs, exhausts, cockpit glass, and spoiler struts (tested up to ~20,000+ triangles).
   * **High (Curved & Smooth)**: Subdivided cylindrical approximations and angled multi-part panels.
   * **Standard Low-Poly**: Clean, minimalist geometry for retro/stylized games.
 * **Camera Auto-Framing**: Dynamically computes 3D bounding boxes and bounding spheres to re-center and frame models on generation.
 
-### 3. PBR Physical Material Engine
+### 4. PBR Physical Material Engine
 * **Material Finish Presets**:
   * **Realistic PBR**: Metallic painted shells (`metalness: 0.85`, `roughness: 0.15`), matte rubber tires (`roughness: 0.95`), chrome accents, and transparent glass.
   * **Cyberpunk Glow**: High-contrast dark metals paired with high-intensity emissive neon channels.
   * **Stylized Matte**: Low-metalness, saturated diffuse clay aesthetic.
 
-### 4. Game-Engine Ready Hierarchy
+### 5. Game-Engine Ready Hierarchy
 * Every generated component is assigned a semantic identifier (`Chassis`, `Wheel_Front_Left`, `Cockpit_Glass`, `Spoiler`, `Headlight_Left`).
 * Preserves named node trees upon `.glb` import into Godot and Unity for immediate rigging and animation (unless draw call merging is enabled — see [Draw call optimization](#-draw-call-optimization)).
 
-### 5. Multi-Format 3D Exporter Dropdown
+### 6. Multi-Format 3D Exporter Dropdown
 * 📦 **`.GLB` (Binary)**: Self-contained binary bundle with meshes, hierarchy, and embedded materials (Best for Godot & Unity).
 * 📄 **`.GLTF` (JSON)**: Open scene description format for inspection and web apps.
 * 📐 **`.OBJ` (Wavefront)**: Universal geometry file compatible with Blender, Maya, and 3ds Max.
 * 🖨️ **`.STL` (Stereolithography)**: Binary mesh export ready for 3D printing slicers (Cura, PrusaSlicer).
 
-### 6. Resilience & Developer Experience
+### 7. Resilience & Developer Experience
 * **Self-Repairing Generation**: Generated code is checked against the real Three.js namespace before it runs. If the model invents a class that doesn't exist (`THREE.PrismGeometry` and friends), the exact diagnostic is sent back for a corrective pass — up to `MAX_REPAIR_ATTEMPTS` times — so a hallucinated API costs a few seconds instead of a failed generation. The system prompt also carries an explicit allowlist of the 20 geometry constructors that actually exist.
 * **Auto-Failover Circuit**: Automatically detects `503 High Demand` or `429 Rate Limit` errors and cascades down to available models (`3.6-flash` $\rightarrow$ `3.5-flash` $\rightarrow$ `3.7-flash`). The model select moves to whichever model answered, so a silent failover is still visible.
 * **Live Generation Stopwatch**: Real-time timer tracking elapsed seconds during generation and displaying total build time.
@@ -168,6 +174,7 @@ it then applies to every model you import.
 ## 🗺️ Product Roadmap & Production-Grade Suggestions
 
 ### Phase 1: Visual Realism & Shading
+- [x] **Orthographic Multi-Angle Input** — ships as the **Reference views** control: 2–3 labelled angles analysed together so scale is solved across all of them. See [Orthographic multi-angle input](#-orthographic-multi-angle-input).
 - [x] **HDRI Image-Based Lighting (IBL)** — ships as the **Environment** control, with a procedural studio default and optional Poly Haven CC0 HDRIs. See [Reflections & environment lighting](#-reflections--environment-lighting).
 - [x] **CSG Boolean Operations** — real constructive solid geometry via `three-bvh-csg`, loaded on demand. See [Boolean operations](#-boolean-operations-csg).
 - [x] **Procedural Canvas Texture Baking** — ships as the `TEX` library handed to generated code. See [Procedural textures](#-procedural-textures).
@@ -179,6 +186,7 @@ it then applies to every model you import.
 - [ ] **LOD (Level of Detail) Generator**: Export multi-tier LODs (`LOD0` full detail, `LOD1` medium proxy, `LOD2` low poly) in a single container.
 
 ### Phase 3: In-App Interactive 3D Editor
+- [x] **Conversational Iterative Edit** — ships as the **Refine** box: refinements run as further turns of the same Gemini conversation, against the model already on stage. See [Iterative edit mode](#-iterative-edit-mode).
 - [x] **Raycast Click-to-Select** — see [Inspector & material editor](#-inspector--material-editor).
 - [x] **Live Color & PBR Tweak Gizmo** — see [Inspector & material editor](#-inspector--material-editor).
 - [x] **TransformControls** — see [Inspector & material editor](#-inspector--material-editor).
@@ -232,6 +240,7 @@ declared in `index.html`.
         ├── ai/
         │   ├── prompt-builder.js # Detail/material instruction blocks → system prompt
         │   ├── gemini-client.js  # generateContent + auto-failover circuit
+        │   ├── conversation.js   # The edit thread: turns, revisions, frozen settings
         │   └── model-compiler.js # Evaluates returned code into a Three.js object
         ├── export/
         │   ├── model-exporter.js # .GLB / .GLTF / .OBJ / .STL exporters
@@ -239,7 +248,8 @@ declared in `index.html`.
         │   └── merge.js          # Draw call optimization via geometry merging
         └── ui/
             ├── api-key.js        # Key persistence + status indicator
-            ├── image-input.js    # Dropzone, paste, preview, client-side rescaling
+            ├── image-input.js    # Dropzone, paste, multi-view slots, client-side rescaling
+            ├── refine.js         # Refine box, applied-edit log, thread state
             ├── export-menu.js    # Export dropdown behavior
             ├── inspector.js      # Selection inspector + material editor
             ├── theme.js          # Light/dark switching + persistence
@@ -272,6 +282,7 @@ app means editing that one file.
 | :-------------------------------------- | :---------------------------------- |
 | Add or reorder fallback models           | `src/js/config.js`                  |
 | Change how Gemini is instructed          | `src/js/ai/prompt-builder.js`       |
+| Change what an edit turn may touch       | `src/js/ai/prompt-builder.js` (`buildEditPrompt`) + `conversation.js` |
 | Add a new export format                  | `src/js/export/model-exporter.js`   |
 | Change the inspector's controls          | `src/js/ui/inspector.js`            |
 | Add or tune a procedural texture         | `src/js/textures/procedural.js`     |
@@ -280,6 +291,7 @@ app means editing that one file.
 | Change how meshes are grouped for merging | `src/js/export/merge.js`           |
 | Tweak lights or add a lighting preset    | `src/js/config.js` + `src/js/viewer/lighting.js` |
 | Add an HDRI or change its resolution     | `src/js/config.js` (`ENVIRONMENTS`, `HDRI_BASE_URL`) |
+| Add a reference angle or raise the view cap | `src/js/config.js` (`REFERENCE_VIEWS`, `MAX_REFERENCE_IMAGES`) |
 | Adjust colors and spacing                | `src/styles/variables.css`          |
 | Tune the light theme                     | `src/styles/variables.css` (`[data-theme="light"]`) + `VIEWPORT_THEMES` |
 | Add a new UI control                     | `index.html` + `src/js/dom.js` + `src/js/main.js` |
@@ -315,6 +327,190 @@ should not be surprised by a white screen.
 model looks identical in both — metals reflect the chosen *environment*, not
 the page background, so chrome can read dark against a light viewport. Pick a
 brighter environment if that matters for a screenshot.
+
+---
+
+## 📐 Orthographic Multi-Angle Input
+
+One photo is one silhouette. Everything behind it — depth, the far side, how
+tall a part really is relative to how long it is — is guesswork, and a model
+asked to guess will produce something plausible rather than something correct.
+
+Attach **two or three views of the same object** and that guesswork disappears:
+each angle measures two of the three axes, so together they pin down the whole
+bounding box.
+
+```text
+  Front view             Side view              Top view
+  ┌─────────┐            ┌───────────┐          ┌─────────┐
+  │         │ Y          │           │ Y        │         │ Z
+  │         │ height     │           │ height   │         │ depth
+  └─────────┘            └───────────┘          └─────────┘
+    X width                Z depth                X width
+
+    X + Y                  Z + Y                  X + Z
+         ╲                   │                   ╱
+          ╲                  │                  ╱
+           →  one bounding box, all three axes, nothing guessed
+```
+
+### Using it
+
+1. Drop, paste, or pick **up to three images**. Several files at once is fine —
+   they fill the slots in order.
+2. The first three are tagged **Front**, **Side** and **Top** automatically. Any
+   row can be re-tagged from its dropdown; **Back**, **Bottom** and **3/4 or
+   detail** are also available.
+3. Generate. The button reads **Fuse views into 3D** once a second angle is
+   attached.
+
+Picking an angle another row already holds swaps the two rather than
+duplicating it — two images claiming "front" would leave an axis unmeasured.
+
+### What gets sent
+
+Each image travels as its own labelled part, with the label immediately ahead of
+the picture it describes:
+
+```text
+text  → REFERENCE 2 of 3 — SIDE VIEW.
+        Its horizontal direction is Z (depth, back to front); its vertical
+        direction is Y (height, bottom to top). It cannot show X (width, left
+        to right) — take that axis from another view.
+        Read from it: the profile silhouette and how mass is distributed…
+image → <side.png>
+```
+
+An unlabelled stack of images is the failure case worth avoiding: models average
+it into one mushy silhouette that matches none of the views, or treat three
+pictures as three separate objects.
+
+The system instruction then carries a reconciliation protocol built from the
+views actually attached — including the shared-axis checks that catch scale
+errors:
+
+```text
+   - Front view vs Side view: Y (height, bottom to top) must come out identical in both.
+   - Front view vs Top view:  X (width, left to right)  must come out identical in both.
+   - Side view vs Top view:   Z (depth, back to front)  must come out identical in both.
+```
+
+Height read off the front view has to match height read off the side view. When
+they disagree, the prompt says which one to trust and to apply that single
+number everywhere — rather than letting each part settle its own scale.
+
+### Blind spots
+
+The other half of the protocol is about what *not* to build. Surfaces no view
+covers are continued from the forms and symmetry the views establish, and left
+plain; invented greebles on an unseen face are the most common way a
+multi-view reconstruction stops matching its reference. The same rule catches
+double-building: a wheel visible in both the front and side view is one wheel,
+not two.
+
+### Notes
+
+* **Angles are only used when there are two or more.** A single reference is
+  sent bare, exactly as before — an axis map is a claim about a picture, and
+  claiming a lone 3/4 render is a front elevation is worse than saying nothing.
+  The angle dropdown appears when the second image does.
+* **`3/4 or detail`** is the escape hatch for a non-orthographic image. It is
+  labelled as foreshortened and explicitly excluded from measurement, so it
+  contributes colour, finish and construction detail without corrupting scale.
+* **Back and bottom views are marked as mirrored** against their opposite, so a
+  feature on the left of a back view does not end up on the left of the model.
+* Every view is rescaled to `MAX_IMAGE_DIMENSION` (800px) before upload, so
+  three references cost roughly three times a single one — not three times a
+  full-resolution photo.
+* The repair pass keeps all views attached, so a correction stays matched to
+  every reference rather than drifting back to the first one.
+
+---
+
+## 🔁 Iterative Edit Mode
+
+Regenerating to change one part is a bad trade: the same prompt run twice gives
+two different cars, so fixing the spoiler costs you the bodywork you liked.
+
+The **Refine** box changes the model already on stage. It is the second turn of
+the same conversation, not a new request:
+
+> *"Keep the car exactly as it is, but replace the rear spoiler with dual
+> exhaust thrusters."*
+
+> *"Change the color scheme from blue/yellow to stealth matte black with crimson
+> neon trim."*
+
+`Ctrl`/`Cmd`+`Enter` applies without reaching for the button. Applied edits stay
+listed under the box, in the order the model received them.
+
+### It is an actual conversation
+
+Each refinement is appended to a running thread and the whole thread is sent:
+
+```text
+user   → a hover car        + reference views
+model  → (revision 1 source)
+user   → replace the rear spoiler with dual exhaust thrusters
+model  → (revision 2 source)
+user   → stealth matte black with crimson neon trim      ← this turn
+```
+
+Which is why *"make that a bit wider"* works — "that" is the thing the previous
+turn added. A tool that only sent the latest code plus your sentence would have
+nothing to resolve "that" against.
+
+### Only the newest revision carries its source
+
+Superseded revisions collapse to a one-line notice:
+
+```text
+model  → (Earlier revision, replaced by the one below. Its source is omitted;
+          the most recent code is the one to edit.)
+```
+
+An edit session that kept every revision would re-upload the entire model on
+every turn, and the old copies say nothing the current one does not. The
+*instructions* between them are what carry intent, and those are a sentence
+each — so the thread stays conversational while the payload stays roughly flat
+no matter how many edits you make.
+
+### What the edit turn is told
+
+Two failure modes are both silent, so both are ruled out explicitly:
+
+* **Answering with a fragment.** Models asked to edit their own code like to
+  reply with an excerpt and `// ...rest unchanged`. The reply replaces the whole
+  model, so anything omitted is deleted. The prompt forbids diffs, excerpts and
+  abbreviations, and asks for the complete `createModel`.
+* **Rebuilding everything.** Asked for one change, a model will happily redesign
+  the rest. The prompt pins everything the request does not mention — mesh
+  names, geometry parameters, positions, materials, textures — and requires a
+  removed part to actually be deleted rather than hidden or scaled to zero.
+
+### Notes
+
+* **Fidelity, finish and the reference views freeze when the thread opens.**
+  Changing the Detail select mid-thread would tell the model to rebuild
+  everything at the same moment the edit prompt tells it to change one part.
+  Those selects apply to the *next* fresh generation; the reference views stay
+  attached to the thread that was generated from them.
+* **Generating again starts a new thread** and clears the edit log — the old
+  edits described a different object.
+* **A failed edit changes nothing.** The thread is only appended to after code
+  has actually built, so a refusal or a bad build leaves the model on stage, the
+  log, and your typed instruction exactly where they were — retry without
+  retyping.
+* **The self-repair pass is invisible to the thread.** If a revision fails to
+  build and a corrective round fixes it, what gets recorded is your request and
+  the code that worked — never the broken attempt or the repair turn.
+* **Inspector tweaks do not survive an edit.** Material changes made by hand
+  live on the mounted object, and a refinement replaces it. Refine first, then
+  tune by hand.
+* **Undo is not a first-class action.** "Put the spoiler back" usually works —
+  the model has the full instruction history — but it is reconstructing, not
+  reverting. Regenerate if a thread has gone somewhere you cannot talk it back
+  from.
 
 ---
 
@@ -636,5 +832,7 @@ Then:
 
 1. Open <http://localhost:5173> in a modern browser (Chrome, Edge, Firefox, Safari).
 2. Paste your [Google AI Studio API Key](https://aistudio.google.com/app/apikey) — it is stored in `localStorage`, never sent anywhere but Google's API.
-3. Paste an image reference (`Ctrl+V`) or type a prompt.
-4. Click **✨ Generate 3D Model** and export your asset!
+3. Type a prompt, or attach reference views (`Ctrl+V`, drag-and-drop, or click) —
+   two or three angles of the same object gives the most accurate result.
+4. Click the generate button, then refine it in place from the **Refine** box —
+   *"swap the spoiler for dual thrusters"* — and export your asset!
